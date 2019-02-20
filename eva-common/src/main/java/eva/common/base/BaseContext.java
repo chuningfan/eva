@@ -1,12 +1,11 @@
 package eva.common.base;
 
 import java.lang.reflect.Method;
-import java.util.Observer;
 
 import eva.common.exception.EvaAPIException;
 import eva.common.exception.EvaContextException;
 
-public interface BaseContext extends Observer {
+public interface BaseContext {
 
 	<T> T getBean(Class<T> beanClass);
 

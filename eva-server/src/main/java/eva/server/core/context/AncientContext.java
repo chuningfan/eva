@@ -61,11 +61,6 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 	}
 
 	@Override
-	public void update(Observable arg0, Object arg1) {
-
-	}
-
-	@Override
 	public <T> T getBean(Class<T> beanClass) {
 		return null;
 	}

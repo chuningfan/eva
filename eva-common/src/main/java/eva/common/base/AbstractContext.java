@@ -1,10 +1,10 @@
 package eva.common.base;
 
 import java.util.Objects;
-import java.util.Observer;
+import java.util.Observable;
 import java.util.concurrent.locks.ReentrantLock;
 
-public abstract class AbstractContext implements Observer {
+public abstract class AbstractContext extends Observable {
 
 	protected static ClassLoader LOADER = null;
 
