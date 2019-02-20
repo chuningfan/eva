@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.Observer;
 
 import eva.common.exception.EvaAPIException;
+import eva.common.exception.EvaContextException;
 
 public interface BaseContext extends Observer {
 
@@ -11,7 +12,7 @@ public interface BaseContext extends Observer {
 
 	void removeBean(Class<?> beanClass);
 
-	void init();
+	void init() throws EvaContextException;
 
 	public static abstract class BaseProxy {
 

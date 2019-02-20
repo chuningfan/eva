@@ -1,5 +1,6 @@
 package eva.server.core.context;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -21,6 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.support.AutowireCandidateQualifier;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.GenericBeanDefinition;
@@ -37,6 +40,7 @@ import eva.common.base.BaseContext;
 import eva.common.base.config.ServerConfig;
 import eva.common.dto.ReturnVoid;
 import eva.common.exception.EvaAPIException;
+import eva.common.exception.EvaContextException;
 import eva.server.core.server.NioServer;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
@@ -45,6 +49,8 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 	private static final Logger LOG = LoggerFactory.getLogger(AncientContext.class);
 
 	private static volatile Map<Class<?>, Object> BEANS = Maps.newConcurrentMap();
+	
+	private static volatile Map<String, Object> DELAY_BEANS = Maps.newConcurrentMap();
 
 	public static ConfigurableApplicationContext CONTEXT = null;
 
@@ -73,54 +79,99 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 	}
 
 	@Override
-	public void init() {
+	public void init() throws EvaContextException {
 		DefaultListableBeanFactory bf = (DefaultListableBeanFactory) CONTEXT.getBeanFactory();
 		Map<String, Object> evaBeans = bf.getBeansWithAnnotation(EvaService.class);
-		if (Objects.nonNull(evaBeans) && evaBeans.size() > 0) {
-			Set<Entry<String, Object>> entries = evaBeans.entrySet();
+		replaceSpringBean(evaBeans, true);
+		if (DELAY_BEANS.size() > 0) {
+			replaceSpringBean(DELAY_BEANS, false);
+		}
+		NioServer server = new NioServer(config);
+		server.start();
+	}
+
+	private void replaceSpringBean(Map<String, Object> beanMap, boolean processDelayBeans) throws EvaContextException {
+		boolean success = true;
+		Exception exc = null;
+		DefaultListableBeanFactory bf = (DefaultListableBeanFactory) CONTEXT.getBeanFactory();
+		if (Objects.nonNull(beanMap) && beanMap.size() > 0) {
+			Set<Entry<String, Object>> entries = beanMap.entrySet();
 			EvaService service = null;
 			BeanDefinitionBuilder builder = null;
 			for (Entry<String, Object> entry : entries) {
 				Object bean = entry.getValue();
 				String beanName = entry.getKey();
+				if(processDelayBeans && needDelay(beanName, bean)) {
+					continue;
+				}
 				service = bean.getClass().getAnnotation(EvaService.class);
 				Class<?> interfaceClass = service.interfaceClass();
 				bf.destroyBean(bean);
+				try {
+					injectForEva(bean);
+				} catch (IllegalArgumentException | IllegalAccessException | ClassNotFoundException e) {
+					exc = e;
+					success = false;
+					break;
+				} 
 				builder = BeanDefinitionBuilder.genericBeanDefinition(interfaceClass);
 				GenericBeanDefinition beanDef = (GenericBeanDefinition) builder.getRawBeanDefinition();
 				beanDef.getPropertyValues().add("interfaceClass", interfaceClass);
 				beanDef.getPropertyValues().add("target", bean);
 				beanDef.setBeanClass(ProxyFactoryBean.class);
-				// ConstructorArgumentValues constructorArgs = new
-				// ConstructorArgumentValues();
-				// beanDef.setConstructorArgumentValues(constructorArgs);
+				beanDef.addQualifier(new AutowireCandidateQualifier(interfaceClass));
 				beanDef.setAutowireMode(GenericBeanDefinition.AUTOWIRE_BY_TYPE);
 				bf.registerBeanDefinition(beanName, beanDef);
+				BEANS.put(interfaceClass, bf.getBean(beanName));
+			}
+			if (!success) {
+				throw new EvaContextException("When replacing bean in spring occurred an error: " + exc.getMessage());
 			}
 		}
-		// for (Class<?> clazz : allClasses) {
-		// EvaService service = clazz.getAnnotation(EvaService.class);
-		// if (Objects.nonNull(service)) {
-		// Class<?> beanType = service.springBeanType();
-		// Class<?> interfaceClass = service.interfaceClass();
-		// try {
-		//
-		// Object bean = bf.getBean(beanType);
-		// bf.destroyBean(bean);
-		// Object proxyInstance = new JdkProxy(clazz.newInstance(),
-		// interfaceClass, LOADER)
-		// .getProxy();
-		// bf.registerSingleton(arg0, arg1);
-		// bf.
-		// } catch (InstantiationException | IllegalAccessException e) {
-		// e.printStackTrace();
-		// }
-		// }
-		// }
-		NioServer server = new NioServer(config);
-		server.start();
 	}
-
+	
+	private boolean needDelay(String beanName, Object bean) {
+		Class<?> beanClass = bean.getClass();
+		Field[] fields = beanClass.getDeclaredFields();
+		if (Objects.isNull(fields) || fields.length == 0) {
+			return false;
+		}
+		for (Field f: fields) {
+			Autowired auto = f.getAnnotation(Autowired.class);
+			if (auto == null) {
+				continue;
+			} else {
+				Class<?> interfaceClass = f.getType();
+				Object fieldBean = CONTEXT.getBean(interfaceClass);
+				EvaService eva = fieldBean.getClass().getAnnotation(EvaService.class);
+				if (Objects.nonNull(eva)) {
+					DELAY_BEANS.put(beanName, bean);
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	private void injectForEva(Object rowBean) throws IllegalArgumentException, IllegalAccessException, ClassNotFoundException {
+		Class<?> beanClass = rowBean.getClass();
+		Field[] fields = beanClass.getDeclaredFields();
+		if (Objects.isNull(fields) || fields.length == 0) {
+			return;
+		}
+		for (Field f: fields) {
+			Autowired auto = f.getAnnotation(Autowired.class);
+			if (auto == null) {
+				continue;
+			} else {
+				Class<?> interfaceClass = f.getType();
+				Object fieldBean = CONTEXT.getBean(interfaceClass);
+				f.setAccessible(true);
+				f.set(rowBean, fieldBean);
+			}
+		}
+	}
+	
 	private static final class ProxyFactoryBean<T> implements FactoryBean<T> {
 
 		private Class<T> interfaceClass;
@@ -317,7 +368,11 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 	@Override
 	public void setApplicationContext(ApplicationContext ctx) throws BeansException {
 		CONTEXT = (ConfigurableApplicationContext) ctx;
-		init();
+		try {
+			init();
+		} catch (EvaContextException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
