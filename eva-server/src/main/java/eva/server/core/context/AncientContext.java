@@ -57,7 +57,6 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 	private ServerConfig config;
 
 	public AncientContext(ServerConfig config) throws Throwable {
-		super();
 		this.config = config;
 	}
 

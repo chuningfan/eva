@@ -21,4 +21,7 @@ public @interface EvaService {
 	int acquireTimeout() default 3000;
 	
 	TimeUnit acquireTimeUnit() default TimeUnit.MILLISECONDS;
+	
+	String version() default "";
+	
 }

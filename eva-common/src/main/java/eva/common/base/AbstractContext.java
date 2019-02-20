@@ -10,8 +10,7 @@ public abstract class AbstractContext implements Observer {
 
 	protected final ReentrantLock lock = new ReentrantLock();
 	
-	
-	public AbstractContext() throws Throwable{
+	{
 		if (Objects.isNull(LOADER)) {
 			try {
 				if (lock.tryLock()) {
@@ -28,6 +27,4 @@ public abstract class AbstractContext implements Observer {
 		}
 	}
 	
-	public abstract void init()throws Throwable;
-
 }
