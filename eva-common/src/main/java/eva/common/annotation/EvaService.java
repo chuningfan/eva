@@ -16,7 +16,7 @@ public @interface EvaService {
 	
 	int maximumConcurrency() default -1;
 	
-	Class<?> serviceInterface();
+	Class<?> interfaceClass();
 	
 	int acquireTimeout() default 3000;
 	

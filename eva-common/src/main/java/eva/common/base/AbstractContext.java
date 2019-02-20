@@ -4,15 +4,14 @@ import java.util.Objects;
 import java.util.Observer;
 import java.util.concurrent.locks.ReentrantLock;
 
-public abstract class AbstractContext<Config> implements Observer {
+public abstract class AbstractContext implements Observer {
 
 	protected static ClassLoader LOADER = null;
 
 	protected final ReentrantLock lock = new ReentrantLock();
 	
-	protected Config config;
 	
-	public AbstractContext(Config config) throws Throwable{
+	public AbstractContext() throws Throwable{
 		if (Objects.isNull(LOADER)) {
 			try {
 				if (lock.tryLock()) {
@@ -27,8 +26,6 @@ public abstract class AbstractContext<Config> implements Observer {
 				lock.unlock();
 			}
 		}
-		this.config = config;
-		init();
 	}
 	
 	public abstract void init()throws Throwable;

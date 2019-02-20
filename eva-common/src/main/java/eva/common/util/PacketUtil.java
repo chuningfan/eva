@@ -4,8 +4,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Objects;
 
-import eva.common.dto.RequestStatus;
+import com.alibaba.fastjson.JSON;
+
+import eva.common.transport.Body;
 import eva.common.transport.Packet;
 
 public class PacketUtil {
@@ -15,20 +18,20 @@ public class PacketUtil {
 	 * @param p
 	 */
 	public static final void setBodySize(Packet p) {
-		int size = 0;
-		Object[] args = p.getArgs();
-		size += ObjectToByte(args).length;
-		Class<?> interfaceClass = p.getInterfaceClass();
-		size += ObjectToByte(interfaceClass).length;
-		String methodName = p.getMethodName();
-		size += methodName.getBytes().length;
-		Object result = p.getResponse();
-		size += ObjectToByte(result).length;
-		Class<?> returnType = p.getReturnType();
-		size += ObjectToByte(returnType).length;
-		RequestStatus status = p.getStatus();
-		size += ObjectToByte(status).length;
-		p.setBodySize(size);
+		Body body = p.getBody();
+		String json = JSON.toJSONString(body);
+		p.setBodySize(json.getBytes().length);
+	}
+	
+	public static Class<?>[] getTypes(Object...args) {
+		if (Objects.isNull(args) || args.length == 0) {
+			return null;
+		}
+		Class<?>[] types = new Class<?>[args.length];
+		for (int i = 0; i < args.length; i ++) {
+			types[i] = args[i].getClass();
+		}
+		return types;
 	}
 	
 	public static byte[] ObjectToByte(Object obj) {

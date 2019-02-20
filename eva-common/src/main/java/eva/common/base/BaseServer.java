@@ -14,11 +14,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import eva.common.base.config.ServerConfig;
 import eva.common.dto.Event;
 import eva.common.dto.Status;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
-public abstract class BaseServer<Config> extends Observable implements Future<Boolean> {
+public abstract class BaseServer extends Observable implements Future<Boolean> {
 	
 	private static final Logger LOG = LoggerFactory.getLogger(BaseServer.class);
 	
@@ -28,19 +29,19 @@ public abstract class BaseServer<Config> extends Observable implements Future<Bo
 	
 	private Status status = Status.STOPPED;
 	
-	protected final Config config;
+	protected final ServerConfig config;
 	
 	private Future<?> future;
 	
 	protected final ReentrantLock lock = new ReentrantLock();
 	
-	public BaseServer(Config config, String serverId) {
+	public BaseServer(ServerConfig config) {
 		status = Status.INITIALIZING;
 		daemon = Executors.newSingleThreadExecutor(new DefaultThreadFactory(getClass()) {
 			@Override
 			public Thread newThread(Runnable r) {
 				final Thread thread = Executors.defaultThreadFactory().newThread(r);
-		        thread.setName(getClass().getSimpleName() + "_daemon_" + serverId);
+		        thread.setName(getClass().getSimpleName() + "_daemon_" + config.getServerId());
 		        thread.setDaemon(true);
 		        final Thread.UncaughtExceptionHandler uncaughtExceptionHandler = new UncaughtExceptionHandler() {
 					@Override
@@ -55,7 +56,6 @@ public abstract class BaseServer<Config> extends Observable implements Future<Bo
 			}
 		});
 		this.config = config;
-		loadContext();
 	}
 
 	public void start() {
@@ -75,7 +75,7 @@ public abstract class BaseServer<Config> extends Observable implements Future<Bo
 		cancel(false);
 	}
 	
-	protected abstract void init(Config config);
+	protected abstract void init(ServerConfig config);
 	
 	protected void notifyObservers(Event arg) {
 		setChanged();
@@ -111,8 +111,6 @@ public abstract class BaseServer<Config> extends Observable implements Future<Bo
 	public Boolean get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 		return null;
 	}
-	
-	protected abstract void loadContext();
 	
 	protected abstract <T> T getDecoder();
 	
