@@ -18,7 +18,6 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 
 	@Override
 	public void init() throws EvaContextException {
-		// TODO Auto-generated method stub
 		
 	}
 

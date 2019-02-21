@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 
 import eva.common.base.BaseServer;
 import eva.common.base.config.ServerConfig;
+import eva.common.dto.ProviderMetadata;
+import eva.common.dto.StatusEvent;
 import eva.common.transport.codec.NioServerDecoder;
 import eva.common.transport.codec.NioServerEncoder;
 import eva.server.core.async.Processor;
@@ -20,12 +22,11 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.FutureListener;
+import io.netty.util.concurrent.GenericFutureListener;
 
 public class NioServer extends BaseServer {
-
-	public NioServer(ServerConfig config) {
-		super(config);
-	}
 
 	private static final Logger LOG = LoggerFactory.getLogger(NioServer.class);
 
@@ -35,6 +36,14 @@ public class NioServer extends BaseServer {
 
 	public static int QUEUE_CAPACITY = 30;
 
+	public NioServer(ServerConfig config, ProviderMetadata providerMetadata) {
+		super(config);
+		providerMetadata.setHost(host);
+		providerMetadata.setPort(config.getPort());
+		providerMetadata.setProviderName(config.getServerId());
+	}
+	
+	@SuppressWarnings("unchecked")
 	@Override
 	protected void init(ServerConfig config) {
 		if (config.isAsyncProcessing()) {
@@ -51,6 +60,7 @@ public class NioServer extends BaseServer {
 		b.childHandler(new ServerChannelInitializer());
 		b.option(ChannelOption.SO_BACKLOG, 128);
 		b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+		b.childOption(ChannelOption.TCP_NODELAY, true);
 		b.childOption(ChannelOption.SO_KEEPALIVE, true);
         b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
         if (config.isAsyncProcessing()) {
@@ -59,10 +69,17 @@ public class NioServer extends BaseServer {
 		ChannelFuture f;
 		try {
 			f = b.bind(config.getPort()).sync();
-			LOG.info("");
-			f.channel().closeFuture().sync();
+			notifyObservers(StatusEvent.getStartupEvent());
+			LOG.info("******** Eve is ready! Hello, World! ********");
+			f.channel().closeFuture().sync().addListener((GenericFutureListener<? extends Future<? super Void>>) new FutureListener<ChannelFuture>() {
+				@Override
+				public void operationComplete(Future<ChannelFuture> paramF) throws Exception {
+					notifyObservers(StatusEvent.getCloseEvent());
+				}
+			});
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			notifyObservers(StatusEvent.getFailedEvent(e));
 		} finally {
 			stopGracefully();
 		}

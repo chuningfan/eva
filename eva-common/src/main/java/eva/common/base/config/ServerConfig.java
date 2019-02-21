@@ -1,5 +1,7 @@
 package eva.common.base.config;
 
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
@@ -7,7 +9,7 @@ import org.springframework.context.annotation.PropertySource;
 public class ServerConfig {
 	
 	@Value("${eva.server.id}")
-	private String serverId;
+	private String serverId = UUID.randomUUID().toString();
 	@Value("${eva.server.port}")
 	private int port;
 	@Value("${eva.server.connector.size}")
@@ -16,7 +18,7 @@ public class ServerConfig {
 	private int workerSize = Runtime.getRuntime().availableProcessors();
 	@Value("${eva.server.enable.monitor}")
 	private boolean needMonitor;
-	@Value("${eva.server.enable.async}")
+	@Value("${eva.server.enable.asyncProcessing}")
 	private boolean asyncProcessing;
 	@Value("${eva.server.async.queue.size}")
 	private int asyncQueueSize = 30;
@@ -76,5 +78,4 @@ public class ServerConfig {
 	public void setAsyncQueueSize(int asyncQueueSize) {
 		this.asyncQueueSize = asyncQueueSize;
 	}
-	
 }
