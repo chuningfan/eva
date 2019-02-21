@@ -88,6 +88,7 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 					LOG.info("Register local server to service registry");
 				} catch (InterruptedException e) {
 					e.printStackTrace();
+					LOG.warn("Delay register eva server to registry failed, skip.");
 				}
 				// TODO register local host to registry
 //				ExecutorService registryWorker = Executors.newSingleThreadExecutor(new DefaultThreadFactory("registry-worker") {
