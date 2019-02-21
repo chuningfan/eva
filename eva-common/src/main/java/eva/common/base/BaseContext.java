@@ -4,6 +4,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -35,32 +36,33 @@ public interface BaseContext {
 	public static abstract class BaseProxy {
 
 		private static final Logger LOG = LoggerFactory.getLogger(BaseProxy.class);
-		
+
 		protected Object target;
-		
+
 		protected Class<?> interfaceClass;
-		
+
 		protected ClassLoader classLoader;
-		
+
 		protected Object[] constructorArgs;
-		
+
 		protected Semaphore sem;
-		
+
 		protected Map<Method, Semaphore> methodSemaphoreMap;
-		
+
 		protected EvaService es;
 
-		protected BaseProxy(Object target, Class<?> interfaceClass, ClassLoader classLoader, Object...constructorArgs) {
+		protected BaseProxy(Object target, Class<?> interfaceClass, ClassLoader classLoader,
+				Object... constructorArgs) {
 			this.target = target;
-			
+
 			this.interfaceClass = interfaceClass;
-			
+
 			this.classLoader = classLoader;
-			
+
 			this.constructorArgs = constructorArgs;
-			
+
 			this.methodSemaphoreMap = Maps.newConcurrentMap();
-			
+
 			es = target.getClass().getAnnotation(EvaService.class);
 			if (es.maximumConcurrency() > 0) {
 				sem = new Semaphore(es.maximumConcurrency());
@@ -70,13 +72,15 @@ public interface BaseContext {
 		protected Object invokeMethod(Object proxy, Method method, Object[] args) throws Throwable {
 			EvaEndpoint endpoint = target.getClass().getMethod(method.getName(), method.getParameterTypes())
 					.getAnnotation(EvaEndpoint.class);
+			Object result = null;
+			String fallback = null;
+			AtomicBoolean isFailed = new AtomicBoolean(false);
+			String returnType = method.getReturnType().getName();
 			if (Objects.nonNull(endpoint)) {
-				String fallback = !"".equals(endpoint.fallback().trim()) ? endpoint.fallback().trim() : null;
+				fallback = !"".equals(endpoint.fallback().trim()) ? endpoint.fallback().trim() : null;
 				long timeout = endpoint.timeout();
 				TimeUnit timeUnit = endpoint.timeUnit();
 				int methodSemVal = endpoint.maximumConcurrency();
-				int fallbackStrategy = endpoint.fallbackStrategy();
-				int retryTime = endpoint.retryTime();
 				Semaphore methodSemaphore = null;
 				if (methodSemVal > 0) {
 					if (Objects.isNull(methodSemaphoreMap.get(method))) {
@@ -84,115 +88,132 @@ public interface BaseContext {
 					}
 					methodSemaphore = methodSemaphoreMap.get(method);
 				}
-				ExecutorService exe = Executors
-						.newCachedThreadPool(new DefaultThreadFactory(target.getClass()) {
-							@Override
-							public Thread newThread(Runnable r) {
-								final Thread thread = Executors.defaultThreadFactory().newThread(r);
-								return thread;
-							}
-						});
-				Object result = null;
-				if ("void".equalsIgnoreCase(method.getReturnType().getName())) {
-					result = ReturnVoid.getInstance();
-				}
-				Semaphore usingOne = null;
-				int semTimeout = 0;
+				Semaphore uniqueSem = null;
+				Integer semTimeout = null;
 				TimeUnit semTimeUnit = null;
 				if (Objects.isNull(methodSemaphore)) {
 					if (Objects.nonNull(sem)) {
-						usingOne = sem;
-						semTimeout = es.acquireTimeout();
-						semTimeUnit = es.acquireTimeUnit();
+						uniqueSem = sem;
+						semTimeout = es.acquireTimeout() < 0 ? 3 : es.acquireTimeout();
+						semTimeUnit = es.acquireTimeout() < 0 ? TimeUnit.SECONDS : es.acquireTimeUnit();
 					}
 				} else {
-					usingOne = methodSemaphore;
-					semTimeout = endpoint.acquireTimeout();
-					semTimeUnit = endpoint.acquireTimeUnit();
+					uniqueSem = methodSemaphore;
+					semTimeout = endpoint.acquireTimeout() < 0 ? 3 : endpoint.acquireTimeout();
+					semTimeUnit = endpoint.acquireTimeout() < 0 ? TimeUnit.SECONDS : endpoint.acquireTimeUnit();
 				}
-				AtomicBoolean flag = new AtomicBoolean(true);
-				Future<?> f = null;
-				if (Objects.nonNull(usingOne)) {
-					if (usingOne.tryAcquire(semTimeout, semTimeUnit)) {
+				if (timeout > 0L) {
+					Future<?> f = null;
+					ExecutorService exe = Executors.newCachedThreadPool(new DefaultThreadFactory(target.getClass()) {
+						@Override
+						public Thread newThread(Runnable r) {
+							final Thread thread = Executors.defaultThreadFactory().newThread(r);
+							return thread;
+						}
+					});
+					// use future to control timeout
+					if (Objects.nonNull(uniqueSem)) {
+						if (uniqueSem.tryAcquire(semTimeout, semTimeUnit)) {
+							try {
+								f = exe.submit(() -> {
+									try {
+										method.invoke(target, args);
+									} catch (IllegalAccessException | IllegalArgumentException
+											| InvocationTargetException e) {
+										e.printStackTrace();
+										isFailed.set(true);
+									}
+								});
+								result = f.get(timeout, timeUnit);
+							} catch (InterruptedException | ExecutionException | TimeoutException e) {
+								if (e instanceof TimeoutException) {
+									f.cancel(true);
+								}
+								isFailed.set(true);
+							} finally {
+								uniqueSem.release();
+								exe.shutdown();
+							}
+						}
+					} else {
 						f = exe.submit(() -> {
 							try {
 								method.invoke(target, args);
-							} catch (IllegalAccessException | IllegalArgumentException
-									| InvocationTargetException e) {
+							} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 								e.printStackTrace();
-								flag.set(false);
+								isFailed.set(true);
 							}
 						});
-						usingOne.release();
-					} else {
-						flag.set(false);
+						try {
+							result = f.get(timeout, timeUnit);
+						} catch (InterruptedException | ExecutionException | TimeoutException e) {
+							if (e instanceof TimeoutException) {
+								f.cancel(true);
+							}
+							isFailed.set(true);
+						} finally {
+							exe.shutdown();
+						}
 					}
 				} else {
-					f = exe.submit(() -> {
-						try {
-							method.invoke(target, args);
-						} catch (IllegalAccessException | IllegalArgumentException
-								| InvocationTargetException e) {
-							e.printStackTrace();
-							flag.set(false);
+					if (Objects.nonNull(uniqueSem)) {
+						if (uniqueSem.tryAcquire(semTimeout, semTimeUnit)) {
+							try {
+								result = method.invoke(target, args);
+							} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+								e.printStackTrace();
+								isFailed.set(true);
+							} finally {
+								uniqueSem.release();
+							}
 						}
-					});
-				}
-				try {
-					if (flag.get()) {
-						result = f.get(timeout, timeUnit);
-					}
-				} catch (Exception e) {
-					e.printStackTrace();
-					if (e instanceof TimeoutException) {
-						f.cancel(true);
-					}
-					flag.set(false);
-				} finally {
-					exe.shutdown();
-				}
-				if (!flag.get()) {
-					if (Objects.nonNull(fallback)) {
-						callFallback(method, target, fallback, retryTime, fallbackStrategy, args);
+					} else {
+						try {
+							result = method.invoke(target, args);
+						} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+							e.printStackTrace();
+							isFailed.set(true);
+						}
 					}
 				}
-				return result;
 			} else {
-				return method.invoke(target, args);
+				try {
+					result = method.invoke(target, args);
+				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+					e.printStackTrace();
+					isFailed.set(true);
+				}
 			}
-		
+			if ("void".equalsIgnoreCase(returnType)) {
+				result = ReturnVoid.getInstance();
+			}
+			if (isFailed.get()) {
+				if (Objects.isNull(fallback)) {
+					throw new EvaAPIException("");
+				} else {
+					result = callFallback(fallback, proxy, method, args);
+				}
+			}
+			return result;
 		}
-		
+
 		protected abstract Object getProxy();
 
-		protected Object callFallback(Method method, Object target, String fallbackName, int strategy,
-				int retryTime, Object... args) throws EvaAPIException {
+		protected Object callFallback(String fallbackName, Object proxy, Method method, Object[] args) throws EvaAPIException {
 			if (Objects.isNull(fallbackName)) {
-				return null;
+				throw new EvaAPIException("No fallback method name!");
 			}
 			Object res = null;
 			try {
 				Method fallbackMethod = target.getClass().getDeclaredMethod(fallbackName, method.getParameterTypes());
-				switch (strategy) {
-				case EvaEndpoint.FALLBACK_FAIL_FAST:
-					throw new EvaAPIException("Call method [" + fallbackName + "] failed!");
-				case EvaEndpoint.FALLBACK_RETRY:
-					for (; retryTime-- > 0;) {
-						try {
-							Thread.sleep(500L);
-							return method.invoke(target, args);
-						} catch (Exception e) {
-							LOG.error("Retrying call [" + method.getName() + "] but failed.");
-						}
-					}
-					break;
-				default:
-					break;
-				}
 				res = fallbackMethod.invoke(target, args);
 			} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException e) {
 				e.printStackTrace();
+				throw new EvaAPIException(e.getMessage());
+			}
+			if ("void".equalsIgnoreCase(method.getReturnType().getName())) {
+				res = ReturnVoid.getInstance();
 			}
 			return res;
 		}
