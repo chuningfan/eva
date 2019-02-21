@@ -2,7 +2,6 @@ package eva.server.core.context;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Map;
@@ -10,8 +9,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,12 +22,10 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import com.google.common.collect.Maps;
 
-import eva.common.annotation.EvaEndpoint;
 import eva.common.annotation.EvaService;
 import eva.common.base.AbstractContext;
 import eva.common.base.BaseContext;
 import eva.common.base.config.ServerConfig;
-import eva.common.exception.EvaAPIException;
 import eva.common.exception.EvaContextException;
 import eva.common.util.PacketUtil;
 import eva.server.core.server.NioServer;
@@ -39,7 +34,6 @@ import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
 public class AncientContext extends AbstractContext implements BaseContext, ApplicationContextAware {
-	private static final Logger LOG = LoggerFactory.getLogger(AncientContext.class);
 	private static volatile Map<Class<?>, Object> BEANS = Maps.newConcurrentMap();
 	private static volatile Map<String, Object> DELAY_BEANS = Maps.newConcurrentMap();
 	public static ConfigurableApplicationContext CONTEXT = null;
@@ -209,11 +203,6 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 		public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
 			return invokeMethod(proxy, method, args);
 		}
-		@Override
-		protected Object callFallback(Method method, Object target, String fallbackName, int strategy, int retryTime,
-				Object... args) throws EvaAPIException {
-			return null;
-		}
 	}
 
 	private static final class JdkProxy extends BaseProxy {
@@ -228,38 +217,6 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 					return invokeMethod(proxy, method, args);
 				}
 			});
-		}
-		@Override
-		protected Object callFallback(Method method, Object target, String fallbackName, int strategy, int retryTime,
-				Object... args) throws EvaAPIException {
-			if (Objects.isNull(fallbackName)) {
-				return null;
-			}
-			Object res = null;
-			try {
-				Method fallbackMethod = target.getClass().getDeclaredMethod(fallbackName, method.getParameterTypes());
-				switch (strategy) {
-				case EvaEndpoint.FALLBACK_FAIL_FAST:
-					throw new EvaAPIException("Call method [" + fallbackName + "] failed!");
-				case EvaEndpoint.FALLBACK_RETRY:
-					for (; retryTime-- > 0;) {
-						try {
-							Thread.sleep(500L);
-							return method.invoke(target, args);
-						} catch (Exception e) {
-							LOG.error("Retrying call [" + method.getName() + "] but failed.");
-						}
-					}
-					break;
-				default:
-					break;
-				}
-				res = fallbackMethod.invoke(target, args);
-			} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
-					| InvocationTargetException e) {
-				e.printStackTrace();
-			}
-			return res;
 		}
 	}
 

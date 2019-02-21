@@ -12,6 +12,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
 
 import eva.common.annotation.EvaEndpoint;
@@ -31,6 +34,8 @@ public interface BaseContext {
 
 	public static abstract class BaseProxy {
 
+		private static final Logger LOG = LoggerFactory.getLogger(BaseProxy.class);
+		
 		protected Object target;
 		
 		protected Class<?> interfaceClass;
@@ -160,8 +165,37 @@ public interface BaseContext {
 		
 		protected abstract Object getProxy();
 
-		protected abstract Object callFallback(Method method, Object target, String fallbackName, int strategy,
-				int retryTime, Object... args) throws EvaAPIException;
+		protected Object callFallback(Method method, Object target, String fallbackName, int strategy,
+				int retryTime, Object... args) throws EvaAPIException {
+			if (Objects.isNull(fallbackName)) {
+				return null;
+			}
+			Object res = null;
+			try {
+				Method fallbackMethod = target.getClass().getDeclaredMethod(fallbackName, method.getParameterTypes());
+				switch (strategy) {
+				case EvaEndpoint.FALLBACK_FAIL_FAST:
+					throw new EvaAPIException("Call method [" + fallbackName + "] failed!");
+				case EvaEndpoint.FALLBACK_RETRY:
+					for (; retryTime-- > 0;) {
+						try {
+							Thread.sleep(500L);
+							return method.invoke(target, args);
+						} catch (Exception e) {
+							LOG.error("Retrying call [" + method.getName() + "] but failed.");
+						}
+					}
+					break;
+				default:
+					break;
+				}
+				res = fallbackMethod.invoke(target, args);
+			} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
+					| InvocationTargetException e) {
+				e.printStackTrace();
+			}
+			return res;
+		}
 
 	}
 
