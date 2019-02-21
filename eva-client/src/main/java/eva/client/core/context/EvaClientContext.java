@@ -12,7 +12,7 @@ import io.netty.util.internal.StringUtil;
 
 public class EvaClientContext implements BaseContext {
 
-	private static final Map<String, Set<String>> REGISTRY_DATA = Maps.newConcurrentMap();
+	private static Map<String, Set<String>> REGISTRY_DATA;
 	
 	private final ClientConfig config;
 	
@@ -41,6 +41,7 @@ public class EvaClientContext implements BaseContext {
 		} else if (StringUtil.isNullOrEmpty(config.getSingleHostAddress()) && !StringUtil.isNullOrEmpty(config.getRegistryAddress())) {
 			clientProvider.setSingleHost(false);
 			clientProvider.setServerAddress(config.getRegistryAddress());
+			REGISTRY_DATA = Maps.newConcurrentMap();
 		} else {
 			throw new EvaContextException("In client configuration file, both single host and registry address are configured but expect one!");
 		}
