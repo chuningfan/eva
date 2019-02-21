@@ -18,6 +18,8 @@ import io.netty.channel.SimpleChannelInboundHandler;
 
 public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 
+	private static final ApplicationContext CONTEXT = AncientContext.CONTEXT;
+	
 	private ServerConfig config;
 	
 	public NioServerHandler(ServerConfig config) {
@@ -26,8 +28,10 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 	
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, Packet packet) throws Exception {
-		ApplicationContext CONTEXT = AncientContext.CONTEXT;
 		Class<?> interfaceClass = packet.getBody().getInterfaceClass();
+		if (Objects.isNull(interfaceClass)) {
+			return;
+		}
 		Object proxy = CONTEXT.getBean(interfaceClass);
 		Packet resp = new Packet();
 		resp.setRequestId(packet.getRequestId());

@@ -4,7 +4,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -22,7 +21,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import eva.common.annotation.EvaService;
@@ -31,7 +29,6 @@ import eva.common.base.BaseApplicationContext;
 import eva.common.base.BaseContext;
 import eva.common.base.config.ServerConfig;
 import eva.common.dto.ProviderMetadata;
-import eva.common.dto.ServiceMetadata;
 import eva.common.dto.StatusEvent;
 import eva.common.exception.EvaContextException;
 import eva.common.listener.StatusListener;
@@ -68,16 +65,6 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 		replaceSpringBean(evaBeans, true);
 		if (DELAY_BEANS.size() > 0) {
 			replaceSpringBean(DELAY_BEANS, false);
-		}
-		if (EVA_BEANS.size() > 0) {
-			List<ServiceMetadata> serviceInfos = Lists.newArrayList();
-			Set<Entry<Class<?>, Object>> evaBeanEntries = EVA_BEANS.entrySet();
-			for (Entry<Class<?>, Object> e: evaBeanEntries) {
-				ServiceMetadata sm = new ServiceMetadata();
-				sm.setServiceClass(e.getKey());
-				serviceInfos.add(sm);
-			}
-			PROVIDER_METADATA.setServiceInfos(serviceInfos);
 		}
 		NioServer server = new NioServer(config, PROVIDER_METADATA);
 		server.addObserver(new StatusListener() {

@@ -1,12 +1,8 @@
 package eva.common.dto;
 
-import java.util.List;
-
 public class ProviderMetadata {
 
 	private String providerName;
-
-	private List<ServiceMetadata> serviceInfos;
 
 	private String host;
 
@@ -18,14 +14,6 @@ public class ProviderMetadata {
 
 	public void setProviderName(String providerName) {
 		this.providerName = providerName;
-	}
-
-	public List<ServiceMetadata> getServiceInfos() {
-		return serviceInfos;
-	}
-
-	public void setServiceInfos(List<ServiceMetadata> serviceInfos) {
-		this.serviceInfos = serviceInfos;
 	}
 
 	public String getHost() {

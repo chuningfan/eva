@@ -8,6 +8,8 @@ public class ClientConfig {
 	
 	private String singleHostAddress;
 	
+	private int maxSizePerProvider;
+	
 	public String getStrategy() {
 		return strategy;
 	}
@@ -30,6 +32,14 @@ public class ClientConfig {
 
 	public void setSingleHostAddress(String singleHostAddress) {
 		this.singleHostAddress = singleHostAddress;
+	}
+
+	public int getMaxSizePerProvider() {
+		return maxSizePerProvider;
+	}
+
+	public void setMaxSizePerProvider(int maxSizePerProvider) {
+		this.maxSizePerProvider = maxSizePerProvider;
 	}
 	
 }
