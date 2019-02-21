@@ -4,7 +4,7 @@ import eva.common.base.AbstractContext;
 import eva.common.base.BaseContext;
 import eva.common.exception.EvaContextException;
 
-public class EvaClient extends AbstractContext implements BaseContext {
+public class EvaClientContext extends AbstractContext implements BaseContext {
 
 	@Override
 	public <T> T getBean(Class<T> beanClass) {
