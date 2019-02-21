@@ -27,7 +27,7 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 	
 	protected final AtomicBoolean serverStatus = new AtomicBoolean();
 	
-	private Status status = Status.STOPPED;
+	private volatile Status status = Status.STOPPED;
 	
 	protected final ServerConfig config;
 	
@@ -110,6 +110,10 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 	@Override
 	public Boolean get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 		return null;
+	}
+	
+	public Status getServerStatus() {
+		return status;
 	}
 	
 	protected abstract <T> T getDecoder();
