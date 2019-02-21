@@ -24,6 +24,7 @@ import com.google.common.collect.Maps;
 
 import eva.common.annotation.EvaService;
 import eva.common.base.AbstractContext;
+import eva.common.base.BaseApplicationContext;
 import eva.common.base.BaseContext;
 import eva.common.base.config.ServerConfig;
 import eva.common.exception.EvaContextException;
@@ -33,7 +34,7 @@ import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
-public class AncientContext extends AbstractContext implements BaseContext, ApplicationContextAware {
+public class AncientContext extends AbstractContext implements BaseContext, BaseApplicationContext, ApplicationContextAware {
 	private static volatile Map<Class<?>, Object> BEANS = Maps.newConcurrentMap();
 	private static volatile Map<String, Object> DELAY_BEANS = Maps.newConcurrentMap();
 	public static ConfigurableApplicationContext CONTEXT = null;
@@ -228,6 +229,10 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 		} catch (EvaContextException e) {
 			e.printStackTrace();
 		}
+	}
+	@Override
+	public ServerConfig getServerConfig() {
+		return config;
 	}
 
 }
