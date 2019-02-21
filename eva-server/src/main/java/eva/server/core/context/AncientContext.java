@@ -29,12 +29,12 @@ import eva.common.annotation.EvaService;
 import eva.common.base.AbstractContext;
 import eva.common.base.BaseApplicationContext;
 import eva.common.base.BaseContext;
-import eva.common.base.Listener;
 import eva.common.base.config.ServerConfig;
 import eva.common.dto.ProviderMetadata;
 import eva.common.dto.ServiceMetadata;
 import eva.common.dto.StatusEvent;
 import eva.common.exception.EvaContextException;
+import eva.common.listener.StatusListener;
 import eva.common.util.PacketUtil;
 import eva.server.core.server.NioServer;
 import net.sf.cglib.proxy.Enhancer;
@@ -79,18 +79,23 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 			PROVIDER_METADATA.setServiceInfos(serviceInfos);
 		}
 		NioServer server = new NioServer(config, PROVIDER_METADATA);
-		server.addObserver(new Listener() {
+		server.addObserver(new StatusListener() {
 			@Override
 			public void onSuccess(Observable source, StatusEvent event) {
 				try {
 					Thread.sleep(500L);
-					LOG.info("Eva is ready for providing RPC service.");
-					LOG.info("Register local server to service registry");
+					LOG.info("Registering local server to service registry");
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 					LOG.warn("Delay register eva server to registry failed, skip.");
 				}
 				// TODO register local host to registry
+				String registryAddress = config.getRegistryAddress();
+				if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
+					LOG.warn("No registry address is provided, eva is cannot provide RPC service.");
+				} else {
+					
+				}
 //				ExecutorService registryWorker = Executors.newSingleThreadExecutor(new DefaultThreadFactory("registry-worker") {
 //					@Override
 //					public Thread newThread(Runnable r) {

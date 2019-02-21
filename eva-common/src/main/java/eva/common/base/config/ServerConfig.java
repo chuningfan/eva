@@ -22,6 +22,8 @@ public class ServerConfig {
 	private boolean asyncProcessing;
 	@Value("${eva.server.async.queue.size}")
 	private int asyncQueueSize = 30;
+	@Value("${eva.registry.address}")
+	private String registryAddress;
 
 	public String getServerId() {
 		return serverId;
@@ -78,4 +80,13 @@ public class ServerConfig {
 	public void setAsyncQueueSize(int asyncQueueSize) {
 		this.asyncQueueSize = asyncQueueSize;
 	}
+
+	public String getRegistryAddress() {
+		return registryAddress;
+	}
+
+	public void setRegistryAddress(String registryAddress) {
+		this.registryAddress = registryAddress;
+	}
+	
 }

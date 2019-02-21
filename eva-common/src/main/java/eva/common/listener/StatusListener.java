@@ -1,4 +1,4 @@
-package eva.common.base;
+package eva.common.listener;
 
 import java.util.Observable;
 import java.util.Observer;
@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 
 import eva.common.dto.StatusEvent;
 
-public interface Listener extends Observer {
+public interface StatusListener extends Observer {
 
-	static final Logger LOG = LoggerFactory.getLogger(Listener.class);
+	static final Logger LOG = LoggerFactory.getLogger(StatusListener.class);
 	
 	@Override
 	default void update(Observable o, Object arg) {

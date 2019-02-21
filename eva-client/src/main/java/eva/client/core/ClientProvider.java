@@ -12,8 +12,16 @@ import io.netty.channel.socket.SocketChannel;
 
 public class ClientProvider implements Pool<SocketChannel> {
 
-	private static volatile Map<String, LinkedList<SocketChannel>> POOL = Maps.newConcurrentMap();
+	private volatile Map<String, LinkedList<SocketChannel>> POOL = Maps.newConcurrentMap();
 
+	private static final class ClientProviderHolder {
+		private static final ClientProvider INSTANCE = new ClientProvider();
+	}
+	
+	public static final ClientProvider get() {
+		return ClientProviderHolder.INSTANCE;
+	} 
+	
 	@Override
 	public SocketChannel getSource() {
 		// TODO Auto-generated method stub

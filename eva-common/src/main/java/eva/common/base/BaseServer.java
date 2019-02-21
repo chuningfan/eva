@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import eva.common.base.config.ServerConfig;
 import eva.common.dto.Status;
 import eva.common.dto.StatusEvent;
+import eva.common.listener.StatusListener;
 import io.netty.util.concurrent.DefaultThreadFactory;
 
 public abstract class BaseServer extends Observable implements Future<Boolean> {
@@ -66,7 +67,7 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 			}
 		});
 		this.config = config;
-		Listener serverStartupListener = new Listener() {
+		StatusListener serverStartupListener = new StatusListener() {
 			@Override
 			public void onSuccess(Observable source, StatusEvent event) {
 				if (serverStatus.compareAndSet(false, true)) {
