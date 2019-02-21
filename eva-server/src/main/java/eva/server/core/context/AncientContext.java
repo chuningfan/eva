@@ -35,6 +35,7 @@ import eva.common.dto.ServiceMetadata;
 import eva.common.dto.StatusEvent;
 import eva.common.exception.EvaContextException;
 import eva.common.listener.StatusListener;
+import eva.common.registry.Registry;
 import eva.common.util.PacketUtil;
 import eva.server.core.server.NioServer;
 import net.sf.cglib.proxy.Enhancer;
@@ -94,7 +95,17 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 				if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
 					LOG.warn("No registry address is provided, eva is cannot provide RPC service.");
 				} else {
-					
+					Registry.get().addObserver(new StatusListener() {
+						@Override
+						public void onSuccess(Observable source, StatusEvent event) {
+							LOG.info("Provider [" + config.getServerId() + "] registered!");
+						}
+						@Override
+						public void onFailure(Observable source, StatusEvent event) {
+							Throwable e = event.getExc();
+							LOG.error("Failed to register provider: " + e.getMessage());
+						}
+					});
 				}
 //				ExecutorService registryWorker = Executors.newSingleThreadExecutor(new DefaultThreadFactory("registry-worker") {
 //					@Override

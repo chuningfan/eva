@@ -35,5 +35,5 @@ public interface StatusListener extends Observer {
 
 	void onFailure(Observable source, StatusEvent event);
 
-	void onClose(Observable source, StatusEvent event);
+	default void onClose(Observable source, StatusEvent event){}
 }
