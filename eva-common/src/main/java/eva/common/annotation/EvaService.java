@@ -12,11 +12,9 @@ import java.util.concurrent.TimeUnit;
 @Documented
 public @interface EvaService {
 	
-	String serviceName() default "";
-	
 	int maximumConcurrency() default -1;
 	
-	Class<?> interfaceClass();
+	Class<?> interfaceClass() default Object.class;
 	
 	int acquireTimeout() default 3000;
 	

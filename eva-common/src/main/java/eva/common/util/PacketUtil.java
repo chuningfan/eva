@@ -67,4 +67,8 @@ public class PacketUtil {
 	    return obj;
 	}
 	
+	public static final long getRequestId() {
+		return 0L;
+	}
+	
 }

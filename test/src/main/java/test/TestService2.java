@@ -6,7 +6,7 @@ import eva.common.annotation.EvaEndpoint;
 import eva.common.annotation.EvaService;
 
 @Component
-@EvaService(interfaceClass = TestInterface2.class, maximumConcurrency=1)
+@EvaService(maximumConcurrency=1)
 public class TestService2 implements TestInterface2 {
 
 	@Override

@@ -8,15 +8,7 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Observable;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,40 +30,33 @@ import eva.common.annotation.EvaService;
 import eva.common.base.AbstractContext;
 import eva.common.base.BaseContext;
 import eva.common.base.config.ServerConfig;
-import eva.common.dto.ReturnVoid;
 import eva.common.exception.EvaAPIException;
 import eva.common.exception.EvaContextException;
+import eva.common.util.PacketUtil;
 import eva.server.core.server.NioServer;
-import io.netty.util.concurrent.DefaultThreadFactory;
+import net.sf.cglib.proxy.Enhancer;
+import net.sf.cglib.proxy.MethodInterceptor;
+import net.sf.cglib.proxy.MethodProxy;
 
 public class AncientContext extends AbstractContext implements BaseContext, ApplicationContextAware {
-
 	private static final Logger LOG = LoggerFactory.getLogger(AncientContext.class);
-
 	private static volatile Map<Class<?>, Object> BEANS = Maps.newConcurrentMap();
-	
 	private static volatile Map<String, Object> DELAY_BEANS = Maps.newConcurrentMap();
-
 	public static ConfigurableApplicationContext CONTEXT = null;
-
 	private ServerConfig config;
-
 	public AncientContext(ServerConfig config) throws Throwable {
 		this.config = config;
 	}
-
 	@Override
 	public <T> T getBean(Class<T> beanClass) {
 		return null;
 	}
-
 	@Override
 	public void removeBean(Class<?> beanClass) {
 		synchronized (BEANS) {
 			BEANS.remove(beanClass);
 		}
 	}
-
 	@Override
 	public void init() throws EvaContextException {
 		DefaultListableBeanFactory bf = (DefaultListableBeanFactory) CONTEXT.getBeanFactory();
@@ -83,7 +68,6 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 		NioServer server = new NioServer(config);
 		server.start();
 	}
-
 	private void replaceSpringBean(Map<String, Object> beanMap, boolean processDelayBeans) throws EvaContextException {
 		boolean success = true;
 		Exception exc = null;
@@ -95,7 +79,7 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 			for (Entry<String, Object> entry : entries) {
 				Object bean = entry.getValue();
 				String beanName = entry.getKey();
-				if(processDelayBeans && needDelay(beanName, bean)) {
+				if (processDelayBeans && needDelay(beanName, bean)) {
 					continue;
 				}
 				service = bean.getClass().getAnnotation(EvaService.class);
@@ -107,7 +91,10 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 					exc = e;
 					success = false;
 					break;
-				} 
+				}
+				if (interfaceClass == Object.class) {
+					interfaceClass = bean.getClass();
+				}
 				builder = BeanDefinitionBuilder.genericBeanDefinition(interfaceClass);
 				GenericBeanDefinition beanDef = (GenericBeanDefinition) builder.getRawBeanDefinition();
 				beanDef.getPropertyValues().add("interfaceClass", interfaceClass);
@@ -123,14 +110,13 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 			}
 		}
 	}
-	
 	private boolean needDelay(String beanName, Object bean) {
 		Class<?> beanClass = bean.getClass();
 		Field[] fields = beanClass.getDeclaredFields();
 		if (Objects.isNull(fields) || fields.length == 0) {
 			return false;
 		}
-		for (Field f: fields) {
+		for (Field f : fields) {
 			Autowired auto = f.getAnnotation(Autowired.class);
 			if (auto == null) {
 				continue;
@@ -146,14 +132,14 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 		}
 		return false;
 	}
-	
-	private void injectForEva(Object rowBean) throws IllegalArgumentException, IllegalAccessException, ClassNotFoundException {
+	private void injectForEva(Object rowBean)
+			throws IllegalArgumentException, IllegalAccessException, ClassNotFoundException {
 		Class<?> beanClass = rowBean.getClass();
 		Field[] fields = beanClass.getDeclaredFields();
 		if (Objects.isNull(fields) || fields.length == 0) {
 			return;
 		}
-		for (Field f: fields) {
+		for (Field f : fields) {
 			Autowired auto = f.getAnnotation(Autowired.class);
 			if (auto == null) {
 				continue;
@@ -165,166 +151,84 @@ public class AncientContext extends AbstractContext implements BaseContext, Appl
 			}
 		}
 	}
-	
 	private static final class ProxyFactoryBean<T> implements FactoryBean<T> {
-
 		private Class<T> interfaceClass;
-
 		private Object target;
-
 		@SuppressWarnings("unused")
 		public Class<T> getInterfaceClass() {
 			return interfaceClass;
 		}
-
 		@SuppressWarnings("unused")
 		public void setInterfaceClass(Class<T> interfaceClass) {
 			this.interfaceClass = interfaceClass;
 		}
-
 		@SuppressWarnings("unused")
 		public Object getTarget() {
 			return target;
 		}
-
 		@SuppressWarnings("unused")
 		public void setTarget(Object target) {
 			this.target = target;
 		}
-
 		@SuppressWarnings("unchecked")
 		@Override
 		public T getObject() throws Exception {
-			return (T) new JdkProxy(target, interfaceClass, LOADER).getProxy();
+			if (interfaceClass.isInterface()) {
+				return (T) new JdkProxy(target, interfaceClass, LOADER).getProxy();
+			} else {
+				return (T) new CglibProxy(target, interfaceClass, LOADER).getProxy();
+			}
 		}
-
 		@Override
 		public Class<?> getObjectType() {
 			return interfaceClass;
 		}
-
 		@Override
 		public boolean isSingleton() {
 			return true;
 		}
+	}
 
+	private static final class CglibProxy extends BaseProxy implements MethodInterceptor {
+		protected CglibProxy(Object target, Class<?> interfaceClass, ClassLoader classLoader,
+				Object... constructorArgs) {
+			super(target, interfaceClass, classLoader, constructorArgs);
+		}
+		@Override
+		protected Object getProxy() {
+			Enhancer enhancer = new Enhancer();
+			enhancer.setSuperclass(this.target.getClass());
+			enhancer.setCallback(this);
+			if (Objects.nonNull(constructorArgs) && constructorArgs.length > 0) {
+				Class<?>[] constructorArgTypes = PacketUtil.getTypes(constructorArgs);
+				return enhancer.create(constructorArgTypes, constructorArgs);
+			}
+			return enhancer.create();
+		}
+		@Override
+		public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
+			return invokeMethod(proxy, method, args);
+		}
+		@Override
+		protected Object callFallback(Method method, Object target, String fallbackName, int strategy, int retryTime,
+				Object... args) throws EvaAPIException {
+			return null;
+		}
 	}
 
 	private static final class JdkProxy extends BaseProxy {
-
-		private Semaphore sem;
-		private Map<Method, Semaphore> methodSemaphoreMap = Maps.newConcurrentMap();
-		private EvaService es;
-
 		protected JdkProxy(Object target, Class<?> interfaceClass, ClassLoader classLoader) {
 			super(target, interfaceClass, classLoader);
-			es = target.getClass().getAnnotation(EvaService.class);
-			if (es.maximumConcurrency() > 0) {
-				sem = new Semaphore(es.maximumConcurrency());
-			}
 		}
-
 		@Override
 		protected Object getProxy() {
 			return Proxy.newProxyInstance(classLoader, new Class<?>[] { interfaceClass }, new InvocationHandler() {
 				@Override
 				public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-					EvaEndpoint endpoint = target.getClass().getMethod(method.getName(), method.getParameterTypes())
-							.getAnnotation(EvaEndpoint.class);
-					if (Objects.nonNull(endpoint)) {
-						String fallback = !"".equals(endpoint.fallback().trim()) ? endpoint.fallback().trim() : null;
-						long timeout = endpoint.timeout();
-						TimeUnit timeUnit = endpoint.timeUnit();
-						int methodSemVal = endpoint.maximumConcurrency();
-						int fallbackStrategy = endpoint.fallbackStrategy();
-						int retryTime = endpoint.retryTime();
-						Semaphore methodSemaphore = null;
-						if (methodSemVal > 0) {
-							if (Objects.isNull(methodSemaphoreMap.get(method))) {
-								methodSemaphoreMap.put(method, new Semaphore(methodSemVal));
-							}
-							methodSemaphore = methodSemaphoreMap.get(method);
-						}
-						ExecutorService exe = Executors
-								.newCachedThreadPool(new DefaultThreadFactory(target.getClass()) {
-									@Override
-									public Thread newThread(Runnable r) {
-										final Thread thread = Executors.defaultThreadFactory().newThread(r);
-										return thread;
-									}
-								});
-						Object result = null;
-						if ("void".equalsIgnoreCase(method.getReturnType().getName())) {
-							result = ReturnVoid.getInstance();
-						}
-						Semaphore usingOne = null;
-						int semTimeout = 0;
-						TimeUnit semTimeUnit = null;
-						if (Objects.isNull(methodSemaphore)) {
-							if (Objects.nonNull(sem)) {
-								usingOne = sem;
-								semTimeout = es.acquireTimeout();
-								semTimeUnit = es.acquireTimeUnit();
-							}
-						} else {
-							usingOne = methodSemaphore;
-							semTimeout = endpoint.acquireTimeout();
-							semTimeUnit = endpoint.acquireTimeUnit();
-						}
-						AtomicBoolean flag = new AtomicBoolean(true);
-						Future<?> f = null;
-						if (Objects.nonNull(usingOne)) {
-							if (usingOne.tryAcquire(semTimeout, semTimeUnit)) {
-								f = exe.submit(() -> {
-									try {
-										method.invoke(target, args);
-									} catch (IllegalAccessException | IllegalArgumentException
-											| InvocationTargetException e) {
-										e.printStackTrace();
-										flag.set(false);
-									}
-								});
-								usingOne.release();
-							} else {
-								flag.set(false);
-							}
-						} else {
-							f = exe.submit(() -> {
-								try {
-									method.invoke(target, args);
-								} catch (IllegalAccessException | IllegalArgumentException
-										| InvocationTargetException e) {
-									e.printStackTrace();
-									flag.set(false);
-								}
-							});
-						}
-						try {
-							if (flag.get()) {
-								result = f.get(timeout, timeUnit);
-							}
-						} catch (Exception e) {
-							e.printStackTrace();
-							if (e instanceof TimeoutException) {
-								f.cancel(true);
-							}
-							flag.set(false);
-						} finally {
-							exe.shutdown();
-						}
-						if (!flag.get()) {
-							if (Objects.nonNull(fallback)) {
-								callFallback(method, target, fallback, retryTime, fallbackStrategy, args);
-							}
-						}
-						return result;
-					} else {
-						return method.invoke(target, args);
-					}
+					return invokeMethod(proxy, method, args);
 				}
 			});
 		}
-
 		@Override
 		protected Object callFallback(Method method, Object target, String fallbackName, int strategy, int retryTime,
 				Object... args) throws EvaAPIException {

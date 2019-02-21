@@ -18,7 +18,7 @@ public @interface EvaEndpoint {
 	
 	String fallback() default "";
 	
-	long timeout() default 3000L;
+	long timeout() default 30000L;
 	
 	TimeUnit timeUnit() default TimeUnit.MILLISECONDS;
 	

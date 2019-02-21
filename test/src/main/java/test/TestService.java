@@ -11,12 +11,12 @@ import eva.common.annotation.EvaService;
 public class TestService implements TestInterface {
 
 	@Autowired
-	private TestInterface2 testInterface2;
+	private TestService2 testService2;
 	
 	@Override
 	@EvaEndpoint
 	public void test() {
-		testInterface2.test();
+		testService2.test();
 		System.out.println(11111);
 	}
 
