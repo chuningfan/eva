@@ -1,6 +1,6 @@
 package eva.client.core.handler;
 
-import eva.common.transport.Response;
+import eva.core.transport.Response;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 

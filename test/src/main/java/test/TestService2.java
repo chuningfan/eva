@@ -2,8 +2,8 @@ package test;
 
 import org.springframework.stereotype.Component;
 
-import eva.common.annotation.EvaEndpoint;
-import eva.common.annotation.EvaService;
+import eva.core.annotation.EvaEndpoint;
+import eva.core.annotation.EvaService;
 
 @Component
 @EvaService(maximumConcurrency=1)

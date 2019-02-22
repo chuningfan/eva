@@ -3,8 +3,8 @@ package test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import eva.common.annotation.EvaEndpoint;
-import eva.common.annotation.EvaService;
+import eva.core.annotation.EvaEndpoint;
+import eva.core.annotation.EvaService;
 
 @Component
 @EvaService(interfaceClass = TestInterface.class, maximumConcurrency=1)

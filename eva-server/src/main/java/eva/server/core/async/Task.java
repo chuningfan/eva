@@ -1,6 +1,6 @@
 package eva.server.core.async;
 
-import eva.common.transport.Packet;
+import eva.core.transport.Packet;
 import io.netty.channel.ChannelHandlerContext;
 
 public class Task {

@@ -6,7 +6,7 @@ import java.util.Random;
 
 import com.google.common.collect.Lists;
 
-import eva.common.base.config.ClientConfig;
+import eva.core.base.config.ClientConfig;
 
 public class BalanceStrategyFactory {
 

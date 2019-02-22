@@ -23,16 +23,16 @@ import org.springframework.context.ConfigurableApplicationContext;
 
 import com.google.common.collect.Maps;
 
-import eva.common.annotation.EvaService;
-import eva.common.base.AbstractContext;
-import eva.common.base.BaseApplicationContext;
-import eva.common.base.BaseContext;
-import eva.common.base.config.ServerConfig;
-import eva.common.dto.ProviderMetadata;
-import eva.common.dto.StatusEvent;
-import eva.common.exception.EvaContextException;
-import eva.common.listener.StatusListener;
-import eva.common.registry.Registry;
+import eva.core.annotation.EvaService;
+import eva.core.base.AbstractContext;
+import eva.core.base.BaseApplicationContext;
+import eva.core.base.BaseContext;
+import eva.core.base.config.ServerConfig;
+import eva.core.dto.ProviderMetadata;
+import eva.core.dto.StatusEvent;
+import eva.core.exception.EvaContextException;
+import eva.core.listener.StatusListener;
+import eva.core.registry.Registry;
 import eva.server.core.server.NioServer;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;

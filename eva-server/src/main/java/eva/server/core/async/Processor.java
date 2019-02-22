@@ -15,9 +15,9 @@ import org.springframework.context.ApplicationContext;
 
 import com.google.common.collect.Queues;
 
-import eva.common.exception.EvaServerException;
-import eva.common.transport.Packet;
-import eva.common.transport.Response;
+import eva.core.exception.EvaServerException;
+import eva.core.transport.Packet;
+import eva.core.transport.Response;
 import eva.server.core.context.AncientContext;
 import io.netty.channel.ChannelHandlerContext;
 

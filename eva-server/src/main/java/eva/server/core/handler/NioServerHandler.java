@@ -5,10 +5,10 @@ import java.util.Objects;
 
 import org.springframework.context.ApplicationContext;
 
-import eva.common.base.config.ServerConfig;
-import eva.common.dto.ReturnVoid;
-import eva.common.transport.Packet;
-import eva.common.transport.Response;
+import eva.core.base.config.ServerConfig;
+import eva.core.dto.ReturnVoid;
+import eva.core.transport.Packet;
+import eva.core.transport.Response;
 import eva.server.core.async.Queue;
 import eva.server.core.async.Task;
 import eva.server.core.context.AncientContext;

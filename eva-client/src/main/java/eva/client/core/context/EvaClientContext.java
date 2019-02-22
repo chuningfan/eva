@@ -5,12 +5,12 @@ import java.util.Set;
 
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.client.core.dto.ClientWrap;
-import eva.common.base.BaseContext;
-import eva.common.base.config.ClientConfig;
-import eva.common.exception.EvaClientException;
-import eva.common.exception.EvaContextException;
-import eva.common.registry.Registry;
-import eva.common.transport.Packet;
+import eva.core.base.BaseContext;
+import eva.core.base.config.ClientConfig;
+import eva.core.exception.EvaClientException;
+import eva.core.exception.EvaContextException;
+import eva.core.registry.Registry;
+import eva.core.transport.Packet;
 import io.netty.util.internal.StringUtil;
 import test.TestInterface;
 
