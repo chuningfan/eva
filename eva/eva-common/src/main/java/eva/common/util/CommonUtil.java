@@ -1,4 +1,4 @@
-package eva.core.util;
+package eva.common.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

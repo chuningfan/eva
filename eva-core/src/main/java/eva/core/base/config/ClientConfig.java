@@ -2,13 +2,15 @@ package eva.core.base.config;
 
 public class ClientConfig {
 	
-	private String strategy;
+	private String strategy = "random";
 	
 	private String registryAddress;
 	
 	private String singleHostAddress;
 	
-	private int maxSizePerProvider;
+	private int maxSizePerProvider = 5;
+	
+	private long globalTimoutMilliSec = 3000;
 	
 	public String getStrategy() {
 		return strategy;
@@ -41,5 +43,14 @@ public class ClientConfig {
 	public void setMaxSizePerProvider(int maxSizePerProvider) {
 		this.maxSizePerProvider = maxSizePerProvider;
 	}
+
+	public long getGlobalTimoutMilliSec() {
+		return globalTimoutMilliSec;
+	}
+
+	public void setGlobalTimoutMilliSec(long globalTimoutMilliSec) {
+		this.globalTimoutMilliSec = globalTimoutMilliSec;
+	}
+
 	
 }

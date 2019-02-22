@@ -13,6 +13,7 @@
 		<module>eva-client</module>
 		<module>test</module>
 		<module>test-api</module>
+		<module>eva-common</module>
 	</modules>
 	<dependencies>
 		<dependency>

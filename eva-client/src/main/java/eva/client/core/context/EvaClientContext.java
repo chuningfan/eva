@@ -3,6 +3,10 @@ package eva.client.core.context;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.client.core.dto.ClientWrap;
 import eva.core.base.BaseContext;
@@ -14,8 +18,9 @@ import eva.core.transport.Packet;
 import io.netty.util.internal.StringUtil;
 import test.TestInterface;
 
-class EvaClientContext implements BaseContext {
+class EvaClientContext implements BaseContext, ApplicationContextAware {
 
+	static ApplicationContext CONTEXT = null;
 	// key: interface name, value addresses
 	static Map<String, Set<String>> REGISTRY_DATA;
 	
@@ -72,6 +77,15 @@ class EvaClientContext implements BaseContext {
 		p.setMethodName("test");
 		ch.getChannel().writeAndFlush(p);
 		ctx.getClientProvider().putback(ch);
+	}
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		CONTEXT = applicationContext;
+	}
+
+	ClientConfig getConfig() {
+		return config;
 	}
 	
 }

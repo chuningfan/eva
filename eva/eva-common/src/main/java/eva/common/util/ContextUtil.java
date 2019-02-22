@@ -1,4 +1,4 @@
-package eva.core.util;
+package eva.common.util;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -9,8 +9,6 @@ import java.util.function.Function;
 
 import com.google.common.collect.Sets;
 
-import eva.core.base.BaseContext;
-
 public class ContextUtil {
 	
 	public static String BASE_DIR = null;
@@ -18,7 +16,7 @@ public class ContextUtil {
 	public static final String CLASS_SUFFIX = ".class";
 	
 	static {
-		URL url = BaseContext.class.getClassLoader().getResource("");
+		URL url = ContextUtil.class.getClassLoader().getResource("");
 		String file = url.getFile();
 		if (file.startsWith("/")) {
 			BASE_DIR = file.substring(1);
