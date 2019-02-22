@@ -17,11 +17,11 @@ public class PacketUtil {
 	 * except request ID, body size.
 	 * @param p
 	 */
-	public static final void setBodySize(Packet p) {
-		Body body = p.getBody();
-		String json = JSON.toJSONString(body);
-		p.setBodySize(json.getBytes().length);
-	}
+//	public static final void setBodySize(Packet p) {
+//		Body body = p.getBody();
+//		String json = JSON.toJSONString(body);
+//		p.setBodySize(json.getBytes().length);
+//	}
 	
 	public static Class<?>[] getTypes(Object...args) {
 		if (Objects.isNull(args) || args.length == 0) {

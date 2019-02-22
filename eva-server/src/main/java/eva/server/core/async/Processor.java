@@ -118,7 +118,6 @@ public class Processor {
 									"Cannot find proxy instance in context for interface [" + interfaceClass
 											+ "]; request ID is " + packet.getRequestId()).build());
 				}
-				PacketUtil.setBodySize(resp);
 				ChannelHandlerContext ctx = task.getCtx();
 				if (ctx.channel().isActive() && ctx.channel().isOpen()) {
 					ctx.writeAndFlush(resp);

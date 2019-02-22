@@ -54,7 +54,6 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 			} else {
 				resp.getBody().setStatus(new RequestStatus.Builder(Status.FAILED, "Cannot find proxy instance in context for interface [" + interfaceClass + "]; request ID is " + packet.getRequestId()).build());
 			}
-			PacketUtil.setBodySize(resp);
 			ctx.writeAndFlush(resp);
 		} else {
 			Task task = new Task(packet, ctx);

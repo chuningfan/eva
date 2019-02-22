@@ -5,26 +5,22 @@ import com.alibaba.fastjson.serializer.SerializerFeature;
 
 import eva.common.transport.Body;
 import eva.common.transport.Packet;
-import eva.common.util.PacketUtil;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
-import io.netty.channel.ChannelHandler.Sharable;
 
 @Sharable
 public class NioServerEncoder extends MessageToByteEncoder<Packet> {
 
 	@Override
-	protected void encode(ChannelHandlerContext arg0, Packet arg1, ByteBuf arg2) throws Exception {
-		Packet p = new Packet();
+	protected void encode(ChannelHandlerContext arg0, Packet p, ByteBuf arg2) throws Exception {
 		long requestId = p.getRequestId();
-		Body body = arg1.getBody();
-		p.setBody(body);
-		PacketUtil.setBodySize(p);
-		int bodySize = p.getBodySize();
-		arg2.writeLong(requestId);
-		arg2.writeInt(bodySize);
+		Body body = p.getBody();
 		byte[] jsonBytes = JSON.toJSONBytes(body, SerializerFeature.BeanToArray);
+		p.setBodySize(jsonBytes.length);
+		arg2.writeLong(requestId);
+		arg2.writeInt(p.getBodySize());
 		arg2.writeBytes(jsonBytes);
 	}
 
