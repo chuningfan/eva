@@ -68,6 +68,8 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 	private Strategy balanceStrategy;
 
 	private String localHostIP;
+	
+	private long globalTimeoutMillSec;
 
 	private ClientProvider() {
 		try {
@@ -225,6 +227,14 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 
 	public void setBalanceStrategy(Strategy balanceStrategy) {
 		this.balanceStrategy = balanceStrategy;
+	}
+
+	public long getGlobalTimeoutMillSec() {
+		return globalTimeoutMillSec;
+	}
+
+	public void setGlobalTimeoutMillSec(long globalTimeoutMillSec) {
+		this.globalTimeoutMillSec = globalTimeoutMillSec;
 	}
 
 	@Override

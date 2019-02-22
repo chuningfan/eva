@@ -3,24 +3,16 @@ package eva.client.core.context;
 import java.util.Map;
 import java.util.Set;
 
-import org.springframework.beans.BeansException;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
-
 import eva.balance.strategies.BalanceStrategyFactory;
-import eva.client.core.dto.ClientWrap;
+import eva.common.global.RequestID;
 import eva.core.base.BaseContext;
 import eva.core.base.config.ClientConfig;
-import eva.core.exception.EvaClientException;
 import eva.core.exception.EvaContextException;
 import eva.core.registry.Registry;
-import eva.core.transport.Packet;
 import io.netty.util.internal.StringUtil;
-import test.TestInterface;
 
-class EvaClientContext implements BaseContext, ApplicationContextAware {
+class EvaClientContext implements BaseContext {
 
-	static ApplicationContext CONTEXT = null;
 	// key: interface name, value addresses
 	static Map<String, Set<String>> REGISTRY_DATA;
 	
@@ -45,6 +37,7 @@ class EvaClientContext implements BaseContext, ApplicationContextAware {
 
 	@Override
 	public void init() throws EvaContextException {
+		RequestID.datacenterId = config.getClientId();
 		if (!StringUtil.isNullOrEmpty(config.getSingleHostAddress()) && StringUtil.isNullOrEmpty(config.getRegistryAddress())) {
 			clientProvider.setSingleHost(true);
 			clientProvider.setServerAddress(config.getSingleHostAddress());
@@ -57,31 +50,12 @@ class EvaClientContext implements BaseContext, ApplicationContextAware {
 			throw new EvaContextException("In client configuration file, both single host and registry address are configured but expect one!");
 		}
 		clientProvider.setMaxSizePerHost(config.getMaxSizePerProvider());
+		clientProvider.setGlobalTimeoutMillSec(config.getGlobalTimoutMilliSec());
 		clientProvider.prepare();
 	}
 
 	public ClientProvider getClientProvider() {
 		return clientProvider;
-	}
-
-	public static void main(String[] args) throws EvaContextException, EvaClientException {
-		ClientConfig config = new ClientConfig();
-		config.setMaxSizePerProvider(3);
-		config.setSingleHostAddress("127.0.0.1:8763");
-		EvaClientContext ctx = new EvaClientContext(config);
-		ClientWrap ch = ctx.getClientProvider().getSource(TestInterface.class);
-		Packet p = new Packet();
-		p.setRequestId(111L);
-		p.setArgTypes(null);
-		p.setInterfaceClass(TestInterface.class);
-		p.setMethodName("test");
-		ch.getChannel().writeAndFlush(p);
-		ctx.getClientProvider().putback(ch);
-	}
-
-	@Override
-	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-		CONTEXT = applicationContext;
 	}
 
 	ClientConfig getConfig() {

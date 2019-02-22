@@ -2,6 +2,8 @@ package eva.core.base.config;
 
 public class ClientConfig {
 	
+	private long clientId;
+	
 	private String strategy = "random";
 	
 	private String registryAddress;
@@ -12,6 +14,15 @@ public class ClientConfig {
 	
 	private long globalTimoutMilliSec = 3000;
 	
+	
+	public long getClientId() {
+		return clientId;
+	}
+
+	public void setClientId(long clientId) {
+		this.clientId = clientId;
+	}
+
 	public String getStrategy() {
 		return strategy;
 	}

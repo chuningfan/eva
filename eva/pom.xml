@@ -11,9 +11,10 @@
 		<module>eva-monitor</module>
 		<module>eva-balance</module>
 		<module>eva-client</module>
+		<module>eva-common</module>
 		<module>test</module>
 		<module>test-api</module>
-		<module>eva-common</module>
+		
 	</modules>
 	<dependencies>
 		<dependency>
@@ -24,7 +25,7 @@
 		<dependency>
 			<groupId>io.netty</groupId>
 			<artifactId>netty-all</artifactId>
-			<version>4.1.33.Final</version>
+			<version>4.1.29.Final</version>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>

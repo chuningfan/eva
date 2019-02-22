@@ -15,6 +15,7 @@ import eva.server.core.context.AncientContext;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
+@io.netty.channel.ChannelHandler.Sharable
 public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 
 	private static final ApplicationContext CONTEXT = AncientContext.CONTEXT;
