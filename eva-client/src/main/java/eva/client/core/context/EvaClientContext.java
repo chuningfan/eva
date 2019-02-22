@@ -71,6 +71,7 @@ class EvaClientContext implements BaseContext {
 		p.setInterfaceClass(TestInterface.class);
 		p.setMethodName("test");
 		ch.getChannel().writeAndFlush(p);
+		ctx.getClientProvider().putback(ch);
 	}
 	
 }

@@ -46,9 +46,9 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
 
 	private ReentrantLock lock = new ReentrantLock();
-	
+
 	private volatile Map<String, ReentrantLock> addrLockMap = Maps.newConcurrentMap();
-	
+
 	private KryoCodecUtil kryoCodecUtil = new KryoCodecUtil(KryoPoolFactory.getKryoPoolInstance());
 
 	private static final class ClientProviderHolder {
@@ -144,9 +144,18 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 		try {
 			lock.lock();
 			Map<String, LinkedList<ClientWrap>> temp = CommonUtil.deepCopy(POOL);
-			if (Objects.nonNull(temp))
+			if (Objects.nonNull(temp)) {
+				Set<Entry<String, LinkedList<ClientWrap>>> entries = temp.entrySet();
+				for (Entry<String, LinkedList<ClientWrap>> e: entries) {
+					if (Objects.nonNull(e.getValue())) {
+						e.getValue().stream().forEach(c -> {
+							c.getChannel().close();
+						});
+					}
+				}
 				temp.clear();
-			POOL = temp;
+				POOL = temp;
+			}
 		} finally {
 			lock.unlock();
 		}
@@ -218,10 +227,6 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 		this.balanceStrategy = balanceStrategy;
 	}
 
-	public static void main(String[] args) {
-
-	}
-
 	@Override
 	public void removeSource(ClientWrap target) {
 		String addr = target.getTargetAddress();
@@ -231,6 +236,7 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 			LinkedList<ClientWrap> channels = POOL.get(addr);
 			if (Objects.nonNull(channels)) {
 				channels.remove(target);
+				target.getChannel().close();
 			}
 		} finally {
 			addrLock.unlock();
