@@ -39,88 +39,114 @@ import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
-public class AncientContext extends AbstractContext implements BaseContext, BaseApplicationContext, ApplicationContextAware {
+public class AncientContext extends AbstractContext
+		implements BaseContext, BaseApplicationContext, ApplicationContextAware {
 	private static volatile Map<Class<?>, Object> EVA_BEANS = Maps.newConcurrentMap();
 	private static volatile Map<String, Object> DELAY_BEANS = Maps.newConcurrentMap();
+	public static NioServer SERVER = null;
 	public static ConfigurableApplicationContext CONTEXT = null;
+	private static DefaultListableBeanFactory BEAN_FACTORY = null;
 	private ServerConfig config;
 	private static ProviderMetadata PROVIDER_METADATA = new ProviderMetadata();
+
 	public AncientContext(ServerConfig config) throws Throwable {
 		this.config = config;
 	}
+
 	@Override
 	public <T> T getBean(Class<T> beanClass) {
 		return null;
 	}
+
 	@Override
 	public void removeBean(Class<?> beanClass) {
 		synchronized (EVA_BEANS) {
 			EVA_BEANS.remove(beanClass);
 		}
 	}
+
 	@Override
 	public void init() throws EvaContextException {
-		DefaultListableBeanFactory bf = (DefaultListableBeanFactory) CONTEXT.getBeanFactory();
-		Map<String, Object> evaBeans = bf.getBeansWithAnnotation(EvaService.class);
-		replaceSpringBean(evaBeans, true);
-		if (DELAY_BEANS.size() > 0) {
-			replaceSpringBean(DELAY_BEANS, false);
-		}
-		NioServer server = new NioServer(config, PROVIDER_METADATA);
-		server.addObserver(new StatusListener() {
-			@Override
-			public void onSuccess(Observable source, StatusEvent event) {
-				try {
-					Thread.sleep(500L);
-					LOG.info("Registering local server to service registry");
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-					LOG.warn("Delay register eva server to registry failed, skip.");
+		if (Objects.isNull(SERVER)) {
+			synchronized (SERVER) {
+				if (Objects.isNull(SERVER)) {
+					SERVER = new NioServer(config, PROVIDER_METADATA);
 				}
-				// TODO register local host to registry
-				String registryAddress = config.getRegistryAddress();
-				if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
-					LOG.warn("No registry address is provided, eva is cannot provide RPC service.");
-				} else {
-					Registry.get().addObserver(new StatusListener() {
+				if (Objects.nonNull(BEAN_FACTORY)) {
+					Map<String, Object> evaBeans = BEAN_FACTORY.getBeansWithAnnotation(EvaService.class);
+					replaceSpringBean(evaBeans, config.isInheritedInjection());
+					if (DELAY_BEANS.size() > 0) {
+						replaceSpringBean(DELAY_BEANS, false);
+					}
+					NioServer server = new NioServer(config, PROVIDER_METADATA);
+					server.addObserver(new StatusListener() {
 						@Override
 						public void onSuccess(Observable source, StatusEvent event) {
-							LOG.info("Provider [" + config.getServerId() + "] registered!");
+							try {
+								Thread.sleep(500L);
+								LOG.info("Registering local server to service registry");
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+								LOG.warn("Delay register eva server to registry failed, skip.");
+							}
+							// TODO register local host to registry
+							String registryAddress = config.getRegistryAddress();
+							if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
+								LOG.warn("No registry address is provided, eva is cannot provide RPC service.");
+							} else {
+								Registry.get().addObserver(new StatusListener() {
+									@Override
+									public void onSuccess(Observable source, StatusEvent event) {
+										LOG.info("Provider [" + config.getServerId() + "] registered!");
+									}
+
+									@Override
+									public void onFailure(Observable source, StatusEvent event) {
+										Throwable e = event.getExc();
+										LOG.error("Failed to register provider: " + e.getMessage());
+									}
+								});
+							}
+							// ExecutorService registryWorker =
+							// Executors.newSingleThreadExecutor(new
+							// DefaultThreadFactory("registry-worker") {
+							// @Override
+							// public Thread newThread(Runnable r) {
+							// final Thread thread =
+							// Executors.defaultThreadFactory().newThread(r);
+							// thread.setDaemon(true);
+							// thread.setName(config.getServerId() +
+							// ">Registry-Daemon");
+							// thread.setUncaughtExceptionHandler(new
+							// UncaughtExceptionHandler() {
+							// @Override
+							// public void uncaughtException(Thread arg0,
+							// Throwable arg1) {
+							//
+							// }
+							// });
+							// return thread;
+							// }
+							// });
 						}
+
 						@Override
 						public void onFailure(Observable source, StatusEvent event) {
-							Throwable e = event.getExc();
-							LOG.error("Failed to register provider: " + e.getMessage());
+							LOG.warn("Eva encountered an error, cannot provide RPC service any more.");
+						}
+
+						@Override
+						public void onClose(Observable source, StatusEvent event) {
+							LOG.warn("Eva is shutted down, cannot provide RPC service any more.");
 						}
 					});
+					server.start();
 				}
-//				ExecutorService registryWorker = Executors.newSingleThreadExecutor(new DefaultThreadFactory("registry-worker") {
-//					@Override
-//					public Thread newThread(Runnable r) {
-//						final Thread thread = Executors.defaultThreadFactory().newThread(r);
-//						thread.setDaemon(true);
-//						thread.setName(config.getServerId() + ">Registry-Daemon");
-//						thread.setUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-//							@Override
-//							public void uncaughtException(Thread arg0, Throwable arg1) {
-//								
-//							}
-//						});
-//						return thread;
-//					}
-//				});
 			}
-			@Override
-			public void onFailure(Observable source, StatusEvent event) {
-				LOG.warn("Eva encountered an error, cannot provide RPC service any more.");
-			}
-			@Override
-			public void onClose(Observable source, StatusEvent event) {
-				LOG.warn("Eva is shutted down, cannot provide RPC service any more.");
-			}
-		});
-		server.start();
+		}
+
 	}
+
 	private void replaceSpringBean(Map<String, Object> beanMap, boolean processDelayBeans) throws EvaContextException {
 		boolean success = true;
 		Exception exc = null;
@@ -163,6 +189,7 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 			}
 		}
 	}
+
 	private boolean needDelay(String beanName, Object bean) {
 		Class<?> beanClass = bean.getClass();
 		Field[] fields = beanClass.getDeclaredFields();
@@ -185,6 +212,7 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 		}
 		return false;
 	}
+
 	private void injectForEva(Object rowBean)
 			throws IllegalArgumentException, IllegalAccessException, ClassNotFoundException {
 		Class<?> beanClass = rowBean.getClass();
@@ -204,25 +232,31 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 			}
 		}
 	}
+
 	private static final class ProxyFactoryBean<T> implements FactoryBean<T> {
 		private Class<T> interfaceClass;
 		private Object target;
+
 		@SuppressWarnings("unused")
 		public Class<T> getInterfaceClass() {
 			return interfaceClass;
 		}
+
 		@SuppressWarnings("unused")
 		public void setInterfaceClass(Class<T> interfaceClass) {
 			this.interfaceClass = interfaceClass;
 		}
+
 		@SuppressWarnings("unused")
 		public Object getTarget() {
 			return target;
 		}
+
 		@SuppressWarnings("unused")
 		public void setTarget(Object target) {
 			this.target = target;
 		}
+
 		@SuppressWarnings("unchecked")
 		@Override
 		public T getObject() throws Exception {
@@ -232,10 +266,12 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 				return (T) new CglibProxy(target, interfaceClass, LOADER).getProxy();
 			}
 		}
+
 		@Override
 		public Class<?> getObjectType() {
 			return interfaceClass;
 		}
+
 		@Override
 		public boolean isSingleton() {
 			return true;
@@ -247,6 +283,7 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 				Object... constructorArgs) {
 			super(target, interfaceClass, classLoader, constructorArgs);
 		}
+
 		@Override
 		protected Object getProxy() {
 			Enhancer enhancer = new Enhancer();
@@ -258,6 +295,7 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 			}
 			return enhancer.create();
 		}
+
 		@Override
 		public Object intercept(Object proxy, Method method, Object[] args, MethodProxy methodProxy) throws Throwable {
 			return invokeMethod(proxy, method, args);
@@ -268,6 +306,7 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 		protected JdkProxy(Object target, Class<?> interfaceClass, ClassLoader classLoader) {
 			super(target, interfaceClass, classLoader);
 		}
+
 		@Override
 		protected Object getProxy() {
 			return Proxy.newProxyInstance(classLoader, new Class<?>[] { interfaceClass }, new InvocationHandler() {
@@ -282,12 +321,14 @@ public class AncientContext extends AbstractContext implements BaseContext, Base
 	@Override
 	public void setApplicationContext(ApplicationContext ctx) throws BeansException {
 		CONTEXT = (ConfigurableApplicationContext) ctx;
+		BEAN_FACTORY = (DefaultListableBeanFactory) CONTEXT.getBeanFactory();
 		try {
 			init();
 		} catch (EvaContextException e) {
 			e.printStackTrace();
 		}
 	}
+
 	@Override
 	public ServerConfig getServerConfig() {
 		return config;

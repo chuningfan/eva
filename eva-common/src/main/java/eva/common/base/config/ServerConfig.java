@@ -26,7 +26,9 @@ public class ServerConfig {
 	private int asyncQueueSize = 30;
 	@Value("${eva.registry.address}")
 	private String registryAddress;
-
+	@Value("${eva.server.bean.inheritedInjection}")
+	private boolean inheritedInjection;
+	
 	public String getServerId() {
 		return serverId;
 	}
@@ -97,6 +99,14 @@ public class ServerConfig {
 
 	public void setRegistryAddress(String registryAddress) {
 		this.registryAddress = registryAddress;
+	}
+
+	public boolean isInheritedInjection() {
+		return inheritedInjection;
+	}
+
+	public void setInheritedInjection(boolean inheritedInjection) {
+		this.inheritedInjection = inheritedInjection;
 	}
 	
 }
