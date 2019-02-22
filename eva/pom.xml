@@ -6,7 +6,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<modules>
-		<module>eva-common</module>
+		<module>eva-core</module>
 		<module>eva-server</module>
 		<module>eva-monitor</module>
 		<module>eva-balance</module>

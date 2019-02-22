@@ -6,7 +6,7 @@
 		<artifactId>eva</artifactId>
 		<version>0.0.1-SNAPSHOT</version>
 	</parent>
-	<artifactId>eva-common</artifactId>
+	<artifactId>eva-core</artifactId>
 	<dependencies>
 		<dependency>
 			<groupId>cglib</groupId>

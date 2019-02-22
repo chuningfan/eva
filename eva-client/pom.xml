@@ -10,7 +10,7 @@
 	<dependencies>
 		<dependency>
 			<groupId>eva</groupId>
-			<artifactId>eva-common</artifactId>
+			<artifactId>eva-core</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
