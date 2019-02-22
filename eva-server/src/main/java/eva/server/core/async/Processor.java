@@ -9,6 +9,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import com.google.common.collect.Queues;
@@ -25,6 +27,8 @@ public class Processor {
 
 	public static final int CORE_THREAD_SIZE = Runtime.getRuntime().availableProcessors();
 
+	private static final Logger LOG = LoggerFactory.getLogger(Processor.class);
+	
 	private static ThreadPoolExecutor TPT = null;
 
 	static {
@@ -36,7 +40,12 @@ public class Processor {
 						int time = 0;
 						boolean flag = false;
 						while (time++ < 3 && !flag) {
-							flag = queue.add(r);
+							try {
+								flag = queue.offer(r, 500, TimeUnit.MILLISECONDS);
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+								LOG.warn("Retry offer task into queue failed. ");
+							}
 						}
 						if (!flag) {
 							try {
