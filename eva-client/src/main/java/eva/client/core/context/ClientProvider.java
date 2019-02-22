@@ -17,11 +17,14 @@ import com.google.common.collect.Sets;
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.balance.strategies.BalanceStrategyFactory.Strategy;
 import eva.client.core.dto.ClientWrap;
+import eva.client.core.handler.EvaClientHandler;
 import eva.common.base.Pool;
 import eva.common.exception.EvaClientException;
 import eva.common.registry.Registry;
-import eva.common.transport.codec.NioServerDecoder;
-import eva.common.transport.codec.NioServerEncoder;
+import eva.common.transport.codec.kryo.KryoCodecUtil;
+import eva.common.transport.codec.kryo.KryoDecoder;
+import eva.common.transport.codec.kryo.KryoEncoder;
+import eva.common.transport.codec.kryo.KryoPoolFactory;
 import eva.common.util.CommonUtil;
 import eva.common.util.NetUtil;
 import io.netty.bootstrap.Bootstrap;
@@ -45,6 +48,8 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 	private ReentrantLock lock = new ReentrantLock();
 	
 	private volatile Map<String, ReentrantLock> addrLockMap = Maps.newConcurrentMap();
+	
+	private KryoCodecUtil kryoCodecUtil = new KryoCodecUtil(KryoPoolFactory.getKryoPoolInstance());
 
 	private static final class ClientProviderHolder {
 		private static final ClientProvider INSTANCE = new ClientProvider();
@@ -158,8 +163,9 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 					@Override
 					protected void initChannel(SocketChannel ch) throws Exception {
 						ChannelPipeline pipeline = ch.pipeline();
-						pipeline.addLast(new NioServerEncoder());
-						pipeline.addLast(new NioServerDecoder());
+						pipeline.addLast(new KryoEncoder(kryoCodecUtil));
+						pipeline.addLast(new KryoDecoder(kryoCodecUtil));
+						pipeline.addLast(new EvaClientHandler());
 					}
 				});
 		ChannelFuture channelFuture = bootstrap.connect(address.getAddress().getHostAddress(), address.getPort());

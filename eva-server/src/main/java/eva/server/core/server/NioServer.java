@@ -7,8 +7,10 @@ import eva.common.base.BaseServer;
 import eva.common.base.config.ServerConfig;
 import eva.common.dto.ProviderMetadata;
 import eva.common.dto.StatusEvent;
-import eva.common.transport.codec.NioServerDecoder;
-import eva.common.transport.codec.NioServerEncoder;
+import eva.common.transport.codec.kryo.KryoCodecUtil;
+import eva.common.transport.codec.kryo.KryoDecoder;
+import eva.common.transport.codec.kryo.KryoEncoder;
+import eva.common.transport.codec.kryo.KryoPoolFactory;
 import eva.server.core.async.Processor;
 import eva.server.core.handler.NioServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
@@ -34,6 +36,8 @@ public class NioServer extends BaseServer {
 
 	private EventLoopGroup workerGroup;
 
+	private KryoCodecUtil kryoCodecUtil = new KryoCodecUtil(KryoPoolFactory.getKryoPoolInstance());
+	
 	public static int QUEUE_CAPACITY = 30;
 
 	public NioServer(ServerConfig config, ProviderMetadata providerMetadata) {
@@ -87,12 +91,12 @@ public class NioServer extends BaseServer {
 
 	@SuppressWarnings("unchecked")
 	protected ChannelHandler getDecoder() {
-		return new NioServerDecoder();
+		return new KryoDecoder(kryoCodecUtil);
 	}
 	
 	@SuppressWarnings("unchecked")
 	protected ChannelHandler getEncoder() {
-		return new NioServerEncoder();
+		return new KryoEncoder(kryoCodecUtil);
 	}
 	
 	private class ServerChannelInitializer extends ChannelInitializer<SocketChannel> {

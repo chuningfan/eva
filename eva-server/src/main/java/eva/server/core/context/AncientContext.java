@@ -33,7 +33,6 @@ import eva.common.dto.StatusEvent;
 import eva.common.exception.EvaContextException;
 import eva.common.listener.StatusListener;
 import eva.common.registry.Registry;
-import eva.common.util.PacketUtil;
 import eva.server.core.server.NioServer;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
@@ -68,7 +67,7 @@ public class AncientContext extends AbstractContext
 	@Override
 	public void init() throws EvaContextException {
 		if (Objects.isNull(SERVER)) {
-			synchronized (SERVER) {
+			synchronized (this) {
 				if (Objects.isNull(SERVER)) {
 					SERVER = new NioServer(config, PROVIDER_METADATA);
 				}
@@ -289,10 +288,6 @@ public class AncientContext extends AbstractContext
 			Enhancer enhancer = new Enhancer();
 			enhancer.setSuperclass(this.target.getClass());
 			enhancer.setCallback(this);
-			if (Objects.nonNull(constructorArgs) && constructorArgs.length > 0) {
-				Class<?>[] constructorArgTypes = PacketUtil.getTypes(constructorArgs);
-				return enhancer.create(constructorArgTypes, constructorArgs);
-			}
 			return enhancer.create();
 		}
 

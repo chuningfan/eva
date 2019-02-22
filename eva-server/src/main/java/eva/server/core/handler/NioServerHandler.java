@@ -6,10 +6,9 @@ import java.util.Objects;
 import org.springframework.context.ApplicationContext;
 
 import eva.common.base.config.ServerConfig;
-import eva.common.dto.RequestStatus;
-import eva.common.dto.RequestStatus.Status;
+import eva.common.dto.ReturnVoid;
 import eva.common.transport.Packet;
-import eva.common.util.PacketUtil;
+import eva.common.transport.Response;
 import eva.server.core.async.Queue;
 import eva.server.core.async.Task;
 import eva.server.core.context.AncientContext;
@@ -28,31 +27,35 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 	
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, Packet packet) throws Exception {
-		Class<?> interfaceClass = packet.getBody().getInterfaceClass();
+		Class<?> interfaceClass = packet.getInterfaceClass();
 		if (Objects.isNull(interfaceClass)) {
 			return;
 		}
 		Object proxy = CONTEXT.getBean(interfaceClass);
-		Packet resp = new Packet();
+		Response resp = new Response();
 		resp.setRequestId(packet.getRequestId());
 		if (!config.isAsyncProcessing()) {
 			if (Objects.nonNull(proxy)) {
-				Class<?>[] types = PacketUtil.getTypes(packet.getBody().getArgs());
+				Class<?>[] types = packet.getArgTypes();
 				Method method = null;
 				if (Objects.nonNull(types)) {
-					method = interfaceClass.getDeclaredMethod(packet.getBody().getMethodName(), types);
+					method = interfaceClass.getDeclaredMethod(packet.getMethodName(), types);
 				} else {
-					method = interfaceClass.getDeclaredMethod(packet.getBody().getMethodName());
+					method = interfaceClass.getDeclaredMethod(packet.getMethodName());
 				}
 				Class<?> returnType = method.getReturnType();
 				if (!"void".equalsIgnoreCase(returnType.getName())) {
-					Object res = method.invoke(proxy, packet.getBody().getArgs());
-					resp.getBody().setResponse(res);
+					Object res = method.invoke(proxy, packet.getArgs());
+					resp.setResult(res);
+				} else {
+					method.invoke(proxy, packet.getArgs());
+					resp.setResult(ReturnVoid.getInstance());
 				}
-				resp.getBody().setReturnType(returnType);
-				resp.getBody().setStatus(new RequestStatus.Builder(Status.SUCCESSFUL, "ok").build());
+				resp.setStateCode(0);
+				resp.setMessage("ok");
 			} else {
-				resp.getBody().setStatus(new RequestStatus.Builder(Status.FAILED, "Cannot find proxy instance in context for interface [" + interfaceClass + "]; request ID is " + packet.getRequestId()).build());
+				resp.setStateCode(1);
+				resp.setMessage("failed");
 			}
 			ctx.writeAndFlush(resp);
 		} else {

@@ -4,12 +4,15 @@ import java.util.Map;
 import java.util.Set;
 
 import eva.balance.strategies.BalanceStrategyFactory;
-import eva.balance.strategies.BalanceStrategyFactory.Strategy;
+import eva.client.core.dto.ClientWrap;
 import eva.common.base.BaseContext;
 import eva.common.base.config.ClientConfig;
+import eva.common.exception.EvaClientException;
 import eva.common.exception.EvaContextException;
 import eva.common.registry.Registry;
+import eva.common.transport.Packet;
 import io.netty.util.internal.StringUtil;
+import test.TestInterface;
 
 class EvaClientContext implements BaseContext {
 
@@ -56,14 +59,18 @@ class EvaClientContext implements BaseContext {
 		return clientProvider;
 	}
 
-//	public static void main(String[] args) throws EvaContextException, EvaClientException {
-//		ClientConfig config = new ClientConfig();
-//		config.setMaxSizePerProvider(3);
-//		config.setSingleHostAddress("127.0.0.1:8763");
-//		EvaClientContext ctx = new EvaClientContext(config);
-//		Channel ch = ctx.getClientProvider().create(null);
-//		Packet p = new Packet();
-//		ch.writeAndFlush(p);
-//	}
+	public static void main(String[] args) throws EvaContextException, EvaClientException {
+		ClientConfig config = new ClientConfig();
+		config.setMaxSizePerProvider(3);
+		config.setSingleHostAddress("127.0.0.1:8763");
+		EvaClientContext ctx = new EvaClientContext(config);
+		ClientWrap ch = ctx.getClientProvider().getSource(TestInterface.class);
+		Packet p = new Packet();
+		p.setRequestId(111L);
+		p.setArgTypes(null);
+		p.setInterfaceClass(TestInterface.class);
+		p.setMethodName("test");
+		ch.getChannel().writeAndFlush(p);
+	}
 	
 }

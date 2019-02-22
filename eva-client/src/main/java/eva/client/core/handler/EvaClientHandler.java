@@ -1,13 +1,13 @@
 package eva.client.core.handler;
 
-import eva.common.transport.Packet;
+import eva.common.transport.Response;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 
-public class EvaClientHandler extends SimpleChannelInboundHandler<Packet> {
+public class EvaClientHandler extends SimpleChannelInboundHandler<Response> {
 
 	@Override
-	protected void channelRead0(ChannelHandlerContext ctx, Packet packet) throws Exception {
+	protected void channelRead0(ChannelHandlerContext ctx, Response response) throws Exception {
 		
 	}
 	

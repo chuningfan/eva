@@ -1,12 +1,16 @@
 package eva.common.transport;
 
 public class Packet {
-	
+
 	private long requestId;
-	
-	private int bodySize;
-	
-	private Body body = new Body();
+
+	private Class<?> interfaceClass;
+
+	private String methodName;
+
+	private Object[] args;
+
+	private Class<?>[] argTypes;
 
 	public long getRequestId() {
 		return requestId;
@@ -16,21 +20,36 @@ public class Packet {
 		this.requestId = requestId;
 	}
 
-	public int getBodySize() {
-		return bodySize;
+	public Class<?> getInterfaceClass() {
+		return interfaceClass;
 	}
 
-	public void setBodySize(int bodySize) {
-		this.bodySize = bodySize;
+	public void setInterfaceClass(Class<?> interfaceClass) {
+		this.interfaceClass = interfaceClass;
 	}
 
-	public Body getBody() {
-		return body;
+	public String getMethodName() {
+		return methodName;
 	}
 
-	public void setBody(Body body) {
-		this.body = body;
+	public void setMethodName(String methodName) {
+		this.methodName = methodName;
 	}
-	
-	
+
+	public Object[] getArgs() {
+		return args;
+	}
+
+	public void setArgs(Object[] args) {
+		this.args = args;
+	}
+
+	public Class<?>[] getArgTypes() {
+		return argTypes;
+	}
+
+	public void setArgTypes(Class<?>[] argTypes) {
+		this.argTypes = argTypes;
+	}
+
 }
