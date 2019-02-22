@@ -13,5 +13,10 @@
 			<artifactId>eva-common</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+		<dependency>
+			<groupId>eva</groupId>
+			<artifactId>eva-balance</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 </project>

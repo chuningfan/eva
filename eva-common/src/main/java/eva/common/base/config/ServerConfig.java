@@ -10,8 +10,8 @@ public class ServerConfig {
 	
 	@Value("${eva.server.id}")
 	private String serverId = UUID.randomUUID().toString();
-	@Value("${eva.provider.name}")
-	private String providerName;
+//	@Value("${eva.provider.name}")
+//	private String providerName;
 	@Value("${eva.server.port}")
 	private int port = 8763;
 	@Value("${eva.server.connector.size}")
@@ -37,13 +37,13 @@ public class ServerConfig {
 		this.serverId = serverId;
 	}
 
-	public String getProviderName() {
-		return providerName;
-	}
-
-	public void setProviderName(String providerName) {
-		this.providerName = providerName;
-	}
+//	public String getProviderName() {
+//		return providerName;
+//	}
+//
+//	public void setProviderName(String providerName) {
+//		this.providerName = providerName;
+//	}
 
 	public int getPort() {
 		return port;

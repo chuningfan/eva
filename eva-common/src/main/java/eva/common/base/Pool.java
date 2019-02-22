@@ -1,9 +1,6 @@
 package eva.common.base;
 
-import java.util.Collection;
-
 import eva.common.exception.EvaClientException;
-import io.netty.channel.Channel;
 /**
  * This interface is for eva client to pooling connetion resources 
  * 
@@ -11,20 +8,15 @@ import io.netty.channel.Channel;
  *
  * @param <T>
  */
-public interface Pool<T> {
-	
-	T getSource();
+public interface Pool<T, Condition> {
 	
 	void removeSource(T target);
 	
 	void clear();
 	
-	Collection<T> getAll();
+	T getSource(Class<?> serviceClass) throws EvaClientException;
 	
-	T getSource(String serverAddress);
+	T create(Condition condition) throws EvaClientException;
 	
-	Collection<T> getSources(String serverAddress);
-	
-	Channel create(String providerName) throws EvaClientException;
-	
+	void putback(T source);
 }
