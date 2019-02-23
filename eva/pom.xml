@@ -14,7 +14,8 @@
 		<module>eva-common</module>
 		<module>test</module>
 		<module>test-api</module>
-		
+
+		<module>test-client</module>
 	</modules>
 	<dependencies>
 		<dependency>

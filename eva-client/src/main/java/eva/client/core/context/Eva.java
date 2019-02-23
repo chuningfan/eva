@@ -21,17 +21,17 @@ import eva.core.annotation.EvaCall;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
 
-public class RPCClient {
+public class Eva {
 
-	private static final ThreadLocal<ResponseFuture<Response>> LOCAL = new ThreadLocal<ResponseFuture<Response>>() {
-		@Override
-		protected ResponseFuture<Response> initialValue() {
-			return new ResponseFuture<Response>();
-		}
-	};
+//	private static final ThreadLocal<ResponseFuture<Response>> LOCAL = new ThreadLocal<ResponseFuture<Response>>() {
+//		@Override
+//		protected ResponseFuture<Response> initialValue() {
+//			return new ResponseFuture<Response>();
+//		}
+//	};
 
 	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheBuilder.newBuilder()
-            .expireAfterAccess(30, TimeUnit.SECONDS)
+            .expireAfterAccess(30, TimeUnit.SECONDS).maximumSize(8192)
             .build();
 
 	private static ClassLoader LOADER = null;
@@ -39,25 +39,27 @@ public class RPCClient {
 	static {
 		LOADER = Thread.currentThread().getContextClassLoader();
 		if (Objects.isNull(LOADER)) {
-			LOADER = RPCClient.class.getClassLoader();
+			LOADER = Eva.class.getClassLoader();
 		}
 	}
 
 	private static final Map<Class<?>, Object> PROXIES = Maps.newConcurrentMap();
 
-	public static final Object getService(Class<?> interfaceClass) {
+	@SuppressWarnings("unchecked")
+	public static final <T> T getService(Class<T> interfaceClass) {
 		if (Objects.nonNull(PROXIES.get(interfaceClass))) {
-			return PROXIES.get(interfaceClass);
+			return (T) PROXIES.get(interfaceClass);
 		}
-		return Proxy.newProxyInstance(LOADER, new Class<?>[] { interfaceClass }, new InvocationHandler() {
+		return (T) Proxy.newProxyInstance(LOADER, new Class<?>[] { interfaceClass }, new InvocationHandler() {
 			@Override
 			public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 				String methodName = method.getName();
 				Class<?>[] argTypes = method.getParameterTypes();
 				Object[] methodArgs = args;
 				long requestId = RequestID.getInstance().get();
-				ResponseFuture<Response> f = LOCAL.get();
+				ResponseFuture<Response> f = new ResponseFuture<Response>();
 				TEMP_FUTURE.put(requestId, f);
+				System.out.println("put ID=" + requestId + ">>>>>>>>" + TEMP_FUTURE.stats());
 				Packet p = new Packet();
 				p.setArgs(methodArgs);
 				p.setArgTypes(argTypes);
@@ -72,13 +74,14 @@ public class RPCClient {
 					timeout = call.timeUnit().toMillis(timeoutVal);
 				}
 				wrap.getChannel().writeAndFlush(p);
-				Response response = LOCAL.get().get(timeout, TimeUnit.MILLISECONDS);
+				Response response = f.get(timeout, TimeUnit.MILLISECONDS);
+				System.out.println("******timeout" + timeout);
 				return response.getResult();
 			}
 		});
 	}
 
-	public static final class ResponseFuture<V> implements Future<V> {
+	static final class ResponseFuture<V> implements Future<V> {
 
 		private volatile V result;
 		
@@ -98,7 +101,7 @@ public class RPCClient {
 		public V get(long arg0, TimeUnit arg2) throws InterruptedException, ExecutionException, TimeoutException {
 			cdl.await(arg0, arg2);
 			if (Objects.isNull(result)) {
-				throw new TimeoutException();
+				throw new TimeoutException("Timeout, while waiting for the result.");
 			}
 			return result;
 		}
@@ -122,8 +125,13 @@ public class RPCClient {
 		
 	}
 	
-	public static final ResponseFuture<Response> getFuture(long requestId) {
-		return TEMP_FUTURE.getIfPresent(requestId);
+	static final ResponseFuture<Response> getFuture(long requestId) {
+		ResponseFuture<Response> f =  TEMP_FUTURE.getIfPresent(requestId);
+		if (Objects.nonNull(f)) {
+			TEMP_FUTURE.invalidate(f);
+			return f;
+		}
+		return null;
 	}
 
 }

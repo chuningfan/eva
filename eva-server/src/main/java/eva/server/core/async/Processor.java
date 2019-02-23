@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import com.esotericsoftware.minlog.Log;
 import com.google.common.collect.Queues;
 
 import eva.core.exception.EvaServerException;
@@ -26,11 +27,11 @@ public class Processor {
 	public static final int CORE_THREAD_SIZE = Runtime.getRuntime().availableProcessors();
 
 	private static final Logger LOG = LoggerFactory.getLogger(Processor.class);
-	
+
 	private static ThreadPoolExecutor TPT = null;
 
 	static {
-		TPT = new ThreadPoolExecutor(CORE_THREAD_SIZE, (CORE_THREAD_SIZE * 2), 3, TimeUnit.SECONDS,
+		TPT = new ThreadPoolExecutor(5, 10, 3, TimeUnit.SECONDS,
 				Queues.newArrayBlockingQueue(500), new RejectedExecutionHandler() {
 					@Override
 					public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
@@ -88,39 +89,42 @@ public class Processor {
 
 		@Override
 		public void run() {
-			try {
-				Task task = Queue.getInstance().getTask();
-				Packet packet = task.getPacket();
-				Class<?> interfaceClass = packet.getInterfaceClass();
-				Object proxy = CONTEXT.getBean(interfaceClass);
-				Response resp = new Response();
-				resp.setRequestId(packet.getRequestId());
-				if (Objects.nonNull(proxy)) {
-					Class<?>[] types = packet.getArgTypes();
-					Method method = null;
-					if (Objects.nonNull(types)) {
-						method = interfaceClass.getDeclaredMethod(packet.getMethodName(), types);
+			for (;;) {
+				try {
+					Task task = Queue.getInstance().getTask();
+					Packet packet = task.getPacket();
+					Class<?> interfaceClass = packet.getInterfaceClass();
+					Object proxy = CONTEXT.getBean(interfaceClass);
+					Response resp = new Response();
+					resp.setRequestId(packet.getRequestId());
+					if (Objects.nonNull(proxy)) {
+						Class<?>[] types = packet.getArgTypes();
+						Method method = null;
+						if (Objects.nonNull(types)) {
+							method = interfaceClass.getDeclaredMethod(packet.getMethodName(), types);
+						} else {
+							method = interfaceClass.getDeclaredMethod(packet.getMethodName());
+						}
+						Class<?> returnType = method.getReturnType();
+						if (!"void".equalsIgnoreCase(returnType.getName())) {
+							Object res = method.invoke(proxy, packet.getArgs());
+							resp.setResult(res);
+						}
+						resp.setStateCode(0);
+						resp.setMessage("ok");
 					} else {
-						method = interfaceClass.getDeclaredMethod(packet.getMethodName());
+						resp.setStateCode(1);
+						resp.setMessage("failed");
 					}
-					Class<?> returnType = method.getReturnType();
-					if (!"void".equalsIgnoreCase(returnType.getName())) {
-						Object res = method.invoke(proxy, packet.getArgs());
-						resp.setResult(res);
+					ChannelHandlerContext ctx = task.getCtx();
+					if (ctx.channel().isActive() && ctx.channel().isOpen()) {
+						ctx.writeAndFlush(resp);
+						Log.info("Processed: " + packet.getRequestId());
 					}
-					resp.setStateCode(0);
-					resp.setMessage("ok");
-				} else {
-					resp.setStateCode(1);
-					resp.setMessage("failed");
+				} catch (InterruptedException | NoSuchMethodException | SecurityException | IllegalAccessException
+						| IllegalArgumentException | InvocationTargetException e) {
+					e.printStackTrace();
 				}
-				ChannelHandlerContext ctx = task.getCtx();
-				if (ctx.channel().isActive() && ctx.channel().isOpen()) {
-					ctx.writeAndFlush(resp);
-				}
-			} catch (InterruptedException | NoSuchMethodException | SecurityException | IllegalAccessException
-					| IllegalArgumentException | InvocationTargetException e) {
-				e.printStackTrace();
 			}
 		}
 

@@ -17,6 +17,8 @@ public class Tester {
 	@Bean
 	public AncientContext ancientContext() throws Throwable {
 		ServerConfig config = new ServerConfig();
+		config.setWorkerSize(10);
+//		config.setAsyncProcessing(true);
 		return new AncientContext(config);
 	}
 	

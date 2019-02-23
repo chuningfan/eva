@@ -11,7 +11,7 @@ import eva.core.exception.EvaContextException;
 import eva.core.registry.Registry;
 import io.netty.util.internal.StringUtil;
 
-class EvaClientContext implements BaseContext {
+public class EvaClientContext implements BaseContext {
 
 	// key: interface name, value addresses
 	static Map<String, Set<String>> REGISTRY_DATA;

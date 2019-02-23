@@ -20,4 +20,9 @@ public class TestService implements TestInterface {
 		System.out.println(11111);
 	}
 
+	@Override
+	public String testStr() {
+		return "Hello World!";
+	}
+
 }

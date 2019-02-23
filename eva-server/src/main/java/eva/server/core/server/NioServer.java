@@ -38,7 +38,7 @@ public class NioServer extends BaseServer {
 
 	private KryoCodecUtil kryoCodecUtil = new KryoCodecUtil(KryoPoolFactory.getKryoPoolInstance());
 	
-	public static int QUEUE_CAPACITY = 30;
+	public static int QUEUE_CAPACITY = 100;
 
 	public NioServer(ServerConfig config, ProviderMetadata providerMetadata) {
 		super(config);

@@ -5,6 +5,8 @@ import java.util.Objects;
 
 import org.springframework.context.ApplicationContext;
 
+import com.esotericsoftware.minlog.Log;
+
 import eva.core.base.config.ServerConfig;
 import eva.core.dto.ReturnVoid;
 import eva.core.transport.Packet;
@@ -59,6 +61,7 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 				resp.setMessage("failed");
 			}
 			ctx.writeAndFlush(resp);
+			Log.info("Processed: " + packet.getRequestId());
 		} else {
 			Task task = new Task(packet, ctx);
 			Queue.getInstance().addToQueue(task);

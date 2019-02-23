@@ -17,7 +17,6 @@ import com.google.common.collect.Sets;
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.balance.strategies.BalanceStrategyFactory.Strategy;
 import eva.client.core.dto.ClientWrap;
-import eva.client.core.handler.EvaClientHandler;
 import eva.common.util.CommonUtil;
 import eva.common.util.NetUtil;
 import eva.core.base.Pool;
