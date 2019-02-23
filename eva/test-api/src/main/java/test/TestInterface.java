@@ -4,6 +4,6 @@ public interface TestInterface {
 	
 	void test();
 	
-	String testStr();
+	String testStr(long l);
 	
 }

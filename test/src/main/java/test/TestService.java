@@ -21,8 +21,8 @@ public class TestService implements TestInterface {
 	}
 
 	@Override
-	public String testStr() {
-		return "Hello World!";
+	public String testStr(long l) {
+		return "Hello World!" + l;
 	}
 
 }

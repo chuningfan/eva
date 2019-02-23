@@ -3,7 +3,6 @@ package eva.core.transport.codec.kryo;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Objects;
 
 import com.esotericsoftware.kryo.pool.KryoPool;
 import com.google.common.io.Closer;
@@ -31,7 +30,11 @@ public class KryoCodecUtil implements MessageCodecUtil {
             out.writeInt(dataLength);
             out.writeBytes(body);
         } finally {
-            closer.close();
+        	try {
+        		closer.close();
+        	} catch (IOException e) {
+        		e.printStackTrace();
+        	}
         }
     }
 
@@ -43,8 +46,10 @@ public class KryoCodecUtil implements MessageCodecUtil {
             Object obj = kryoSerialization.deserialize(byteArrayInputStream);
             return obj;
         } finally {
-        	if (Objects.nonNull(closer)) {
+        	try {
         		closer.close();
+        	} catch (IOException e) {
+        		e.printStackTrace();
         	}
         }
     }

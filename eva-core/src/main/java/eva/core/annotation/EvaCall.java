@@ -7,7 +7,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
-@Target(ElementType.PARAMETER)
+@Target(ElementType.LOCAL_VARIABLE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface EvaCall {
@@ -16,5 +16,4 @@ public @interface EvaCall {
 	
 	TimeUnit timeUnit() default TimeUnit.SECONDS;
 	
-	boolean async() default false;
 }

@@ -20,7 +20,7 @@ public class App {
 		ClientConfig config = new ClientConfig();
 		config.setClientId(1L);
 		config.setGlobalTimoutMilliSec(30000);
-		config.setMaxSizePerProvider(10);
+		config.setMaxSizePerProvider(50);
 		config.setSingleHostAddress("127.0.0.1:8763");
 		return new EvaClientContext(config);
 	}

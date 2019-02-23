@@ -1,5 +1,7 @@
 package eva.core.transport.codec;
 
+import java.io.IOException;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
@@ -26,8 +28,12 @@ public class MessageEncoder extends MessageToByteEncoder<Object> {
     }
 
 	@Override
-	protected void encode(ChannelHandlerContext ctx, Object msg, ByteBuf out) throws Exception {
-		util.encode(out, msg);
+	protected void encode(ChannelHandlerContext ctx, Object msg, ByteBuf out) {
+		try {
+			util.encode(out, msg);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 }
