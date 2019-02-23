@@ -1,9 +1,13 @@
 package eva.client.core.dto;
 
+import java.io.Serializable;
+
 import io.netty.channel.Channel;
 
-public class ClientWrap {
+public class ClientWrap implements Serializable {
 	
+	private static final long serialVersionUID = -8823434525171210732L;
+
 	private Channel channel;
 	
 	private String targetAddress;

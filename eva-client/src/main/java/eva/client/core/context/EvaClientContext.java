@@ -1,18 +1,31 @@
 package eva.client.core.context;
 
+import java.net.InetSocketAddress;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.common.global.RequestID;
+import eva.common.util.NetUtil;
+import eva.core.base.AbstractContext;
 import eva.core.base.BaseContext;
+import eva.core.base.Detective;
 import eva.core.base.config.ClientConfig;
+import eva.core.dto.StatusEvent;
 import eva.core.exception.EvaContextException;
 import eva.core.registry.Registry;
 import io.netty.util.internal.StringUtil;
 
-public class EvaClientContext implements BaseContext {
+public class EvaClientContext extends AbstractContext implements BaseContext {
 
+	private static final Logger LOG = LoggerFactory.getLogger(EvaClientContext.class);
+	
 	// key: interface name, value addresses
 	static Map<String, Set<String>> REGISTRY_DATA;
 	
@@ -20,8 +33,19 @@ public class EvaClientContext implements BaseContext {
 	
 	private final ClientProvider clientProvider = ClientProvider.get();
 	
+	private final ExecutorService daemon;
+	
 	public EvaClientContext(ClientConfig config) throws EvaContextException {
 		this.config = config;
+		daemon = Executors.newSingleThreadExecutor(new ThreadFactory() {
+			@Override
+			public Thread newThread(Runnable arg0) {
+				final Thread th = Executors.defaultThreadFactory().newThread(arg0);
+				th.setDaemon(true);
+				th.setContextClassLoader(LOADER);
+				return th;
+			}
+		});
 		init();
 	}
 	
@@ -51,7 +75,26 @@ public class EvaClientContext implements BaseContext {
 		}
 		clientProvider.setMaxSizePerHost(config.getMaxSizePerProvider());
 		clientProvider.setGlobalTimeoutMillSec(config.getGlobalTimoutMilliSec());
-		clientProvider.prepare();
+		Detective detec = new Detective() {
+			@Override
+			public void connect() {
+				StatusEvent event = StatusEvent.getStartupEvent();
+				try {
+					clientProvider.prepare();
+				} catch (Exception e) {
+					LOG.error("Cannot prepare channels, because of " + e.getMessage());
+					event.setStatus((short)1);
+				}
+				setChanged();
+				notifyObservers(event);
+			}
+			@Override
+			public InetSocketAddress targetAddress() {
+				return NetUtil.getAddress(clientProvider.getServerAddress());
+			}
+		};
+		addObserver(detec);
+		daemon.submit(detec);
 	}
 
 	public ClientProvider getClientProvider() {

@@ -1,8 +1,15 @@
 package eva.common.util;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NetUtil {
+	
+	private static final Logger LOG = LoggerFactory.getLogger(NetUtil.class);
 	
 	public static final String getAddress(InetSocketAddress addr) {
 		return addr.getAddress().getHostAddress() + ":" + addr.getPort();
@@ -25,5 +32,22 @@ public class NetUtil {
 		int port = Integer.parseInt(arr[1]);
 		return port;
 	}
-	
+	public static boolean pingHost(String ipAddress, int port) throws Exception {
+		boolean isReachable = false;
+		Socket connect = new Socket();
+		try {
+			InetSocketAddress endpointSocketAddr = new InetSocketAddress(ipAddress, port);
+			connect.connect(endpointSocketAddr,3000);
+			isReachable = connect.isConnected();
+		} catch (Exception e) {
+			LOG.trace(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
+		} finally {
+			try {
+				connect.close();
+			} catch (IOException e) {
+				LOG.trace(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
+			}
+		}
+		return isReachable;
+	}
 }

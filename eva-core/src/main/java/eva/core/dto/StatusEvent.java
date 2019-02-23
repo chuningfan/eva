@@ -41,17 +41,17 @@ public class StatusEvent {
 	}
 
 	public static final StatusEvent getCloseEvent(Object...args) {
-		StatusEvent failedEvent = new StatusEvent();
-		failedEvent.setStatus((short)2);
-		failedEvent.setArgs(args);
-		return failedEvent;
+		StatusEvent closeEvent = new StatusEvent();
+		closeEvent.setStatus((short)2);
+		closeEvent.setArgs(args);
+		return closeEvent;
 	}
 	
 	public static final StatusEvent getStartupEvent(Object...args) {
-		StatusEvent failedEvent = new StatusEvent();
-		failedEvent.setStatus((short)0);
-		failedEvent.setArgs(args);
-		return failedEvent;
+		StatusEvent startupEvent = new StatusEvent();
+		startupEvent.setStatus((short)0);
+		startupEvent.setArgs(args);
+		return startupEvent;
 	}
 	
 }

@@ -3,6 +3,7 @@ package eva.client.core.context;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -17,7 +18,6 @@ import com.google.common.collect.Sets;
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.balance.strategies.BalanceStrategyFactory.Strategy;
 import eva.client.core.dto.ClientWrap;
-import eva.common.util.CommonUtil;
 import eva.common.util.NetUtil;
 import eva.core.base.Pool;
 import eva.core.exception.EvaClientException;
@@ -40,7 +40,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 
 	// key: address, value: channels
-	private volatile Map<String, LinkedList<ClientWrap>> POOL = Maps.newConcurrentMap();
+	private volatile HashMap<String, LinkedList<ClientWrap>> POOL = Maps.newHashMap();
 
 	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
 
@@ -79,6 +79,7 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 	}
 
 	public void prepare() {
+		clear();
 		if (!isSingleHost) {
 			INTERFACE_HOSTS = Registry.get().getAllNodes();
 			if (Objects.nonNull(INTERFACE_HOSTS) && !INTERFACE_HOSTS.isEmpty()) {
@@ -144,19 +145,7 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 	public void clear() {
 		try {
 			lock.lock();
-			Map<String, LinkedList<ClientWrap>> temp = CommonUtil.deepCopy(POOL);
-			if (Objects.nonNull(temp)) {
-				Set<Entry<String, LinkedList<ClientWrap>>> entries = temp.entrySet();
-				for (Entry<String, LinkedList<ClientWrap>> e: entries) {
-					if (Objects.nonNull(e.getValue())) {
-						e.getValue().stream().forEach(c -> {
-							c.getChannel().close();
-						});
-					}
-				}
-				temp.clear();
-				POOL = temp;
-			}
+			POOL.clear();
 		} finally {
 			lock.unlock();
 		}
