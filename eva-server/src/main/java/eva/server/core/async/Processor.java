@@ -31,7 +31,8 @@ public class Processor {
 	private static ThreadPoolExecutor TPT = null;
 
 	static {
-		TPT = new ThreadPoolExecutor(5, 10, 3, TimeUnit.SECONDS,
+		int CPUCount= Runtime.getRuntime().availableProcessors();
+		TPT = new ThreadPoolExecutor(CPUCount + 1, CPUCount * 2, 15, TimeUnit.SECONDS,
 				Queues.newArrayBlockingQueue(500), new RejectedExecutionHandler() {
 					@Override
 					public void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
