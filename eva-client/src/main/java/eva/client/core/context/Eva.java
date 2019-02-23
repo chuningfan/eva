@@ -23,13 +23,6 @@ import eva.core.transport.Response;
 
 public class Eva {
 
-//	private static final ThreadLocal<ResponseFuture<Response>> LOCAL = new ThreadLocal<ResponseFuture<Response>>() {
-//		@Override
-//		protected ResponseFuture<Response> initialValue() {
-//			return new ResponseFuture<Response>();
-//		}
-//	};
-
 	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheBuilder.newBuilder()
             .expireAfterAccess(30, TimeUnit.SECONDS).maximumSize(8192)
             .build();
@@ -73,10 +66,15 @@ public class Eva {
 					int timeoutVal = call.timeout();
 					timeout = call.timeUnit().toMillis(timeoutVal);
 				}
-				wrap.getChannel().writeAndFlush(p);
-				Response response = f.get(timeout, TimeUnit.MILLISECONDS);
-				System.out.println("******timeout" + timeout);
-				return response.getResult();
+				try {
+					wrap.getChannel().writeAndFlush(p);
+					Response response = f.get(timeout, TimeUnit.MILLISECONDS);
+					return response.getResult();
+				} catch (Exception e) {
+					throw e;
+				} finally {
+					ClientProvider.get().putback(wrap);
+				}
 			}
 		});
 	}

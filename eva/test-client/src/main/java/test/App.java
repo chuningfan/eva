@@ -19,7 +19,7 @@ public class App {
 	public EvaClientContext evaClientContext() throws EvaContextException {
 		ClientConfig config = new ClientConfig();
 		config.setClientId(1L);
-		config.setGlobalTimoutMilliSec(10000);
+		config.setGlobalTimoutMilliSec(30000);
 		config.setMaxSizePerProvider(10);
 		config.setSingleHostAddress("127.0.0.1:8763");
 		return new EvaClientContext(config);

@@ -3,7 +3,6 @@ package eva.client.core.context;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -40,13 +39,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 
 	// key: address, value: channels
-	private volatile HashMap<String, LinkedList<ClientWrap>> POOL = Maps.newHashMap();
+	private volatile Map<String, LinkedList<ClientWrap>> POOL = Maps.newConcurrentMap();
 
 	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
 
 	private ReentrantLock lock = new ReentrantLock();
-
-	private volatile Map<String, ReentrantLock> addrLockMap = Maps.newConcurrentMap();
 
 	private KryoCodecUtil kryoCodecUtil = new KryoCodecUtil(KryoPoolFactory.getKryoPoolInstance());
 
@@ -67,7 +64,7 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 	private Strategy balanceStrategy;
 
 	private String localHostIP;
-	
+
 	private long globalTimeoutMillSec;
 
 	private ClientProvider() {
@@ -89,12 +86,22 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 					addresses.addAll(en.getValue());
 				}
 				for (String addr : addresses) {
-					addrLockMap.put(addr, new ReentrantLock());
+					// addrLockMap.put(addr, new ReentrantLock());
 					String host = NetUtil.getHost(addr);
 					int port = NetUtil.getPort(addr);
 					LinkedList<ClientWrap> llist = POOL.get(addr);
 					if (Objects.isNull(llist)) {
-						llist = Lists.newLinkedList();
+						llist = new LinkedList<ClientWrap>() {
+							private static final long serialVersionUID = 1L;
+
+							@Override
+							public boolean offer(ClientWrap arg0) {
+								if (maxSizePerHost >= size()) {
+									return false;
+								}
+								return super.offer(arg0);
+							}
+						};
 						POOL.put(addr, llist);
 					}
 					int failedTime = 0;
@@ -115,7 +122,7 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 			}
 		} else {
 			String addr = serverAddress;
-			addrLockMap.put(addr, new ReentrantLock());
+			// addrLockMap.put(addr, new ReentrantLock());
 			String[] arr = addr.split(":");
 			String host = arr[0];
 			int port = Integer.parseInt(arr[1]);
@@ -228,16 +235,10 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 	@Override
 	public void removeSource(ClientWrap target) {
 		String addr = target.getTargetAddress();
-		ReentrantLock addrLock = addrLockMap.get(addr);
-		try {
-			addrLock.lock();
-			LinkedList<ClientWrap> channels = POOL.get(addr);
-			if (Objects.nonNull(channels)) {
-				channels.remove(target);
-				target.getChannel().close();
-			}
-		} finally {
-			addrLock.unlock();
+		LinkedList<ClientWrap> channels = POOL.get(addr);
+		if (Objects.nonNull(channels)) {
+			channels.remove(target);
+			target.getChannel().close();
 		}
 	}
 
@@ -251,55 +252,39 @@ class ClientProvider implements Pool<ClientWrap, InetSocketAddress> {
 			address = getChannelAddress(serviceAddresses);
 		}
 		LinkedList<ClientWrap> llist = POOL.get(address);
-		ReentrantLock addrLock = addrLockMap.get(address);
-		try {
-			addrLock.lock();
-			if (Objects.isNull(llist)) {
-				POOL.put(address, Lists.newLinkedList());
-				return create(NetUtil.getAddress(address));
-			} else {
-
-				if (llist.isEmpty()) {
-					int retryTime = 0;
-					while (retryTime++ < 3) {
-						try {
-							Thread.sleep(300L);
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-						if (llist.stream().findAny().isPresent()) {
-							return llist.poll();
-						}
+		if (Objects.isNull(llist)) {
+			POOL.put(address, new LinkedList<ClientWrap>() {
+				private static final long serialVersionUID = 1L;
+				@Override
+				public boolean offer(ClientWrap arg0) {
+					if (maxSizePerHost <= size()) {
+						return false;
 					}
-					return create(NetUtil.getAddress(address));
-				} else {
-					if (llist.stream().findAny().isPresent()) {
-						return llist.poll();
-					}
+					return super.offer(arg0);
 				}
+			});
+			return create(NetUtil.getAddress(address));
+		} else {
+			ClientWrap wrap = llist.poll();
+			if (Objects.isNull(wrap)) {
+				return create(NetUtil.getAddress(address));
 			}
-		} finally {
-			addrLock.unlock();
+			return wrap;
 		}
-		return null;
 	}
 
 	@Override
 	public void putback(ClientWrap source) {
 		String addr = source.getTargetAddress();
-		ReentrantLock addrLock = addrLockMap.get(addr);
-		try {
-			addrLock.lock();
-			LinkedList<ClientWrap> channels = POOL.get(addr);
-			if (Objects.isNull(channels)) {
-				POOL.put(addr, Lists.newLinkedList());
-			}
-			channels = POOL.get(addr);
-			if (channels.size() < maxSizePerHost) {
-				channels.offer(source);
-			}
-		} finally {
-			addrLock.unlock();
+		LinkedList<ClientWrap> channels = POOL.get(addr);
+		if (Objects.isNull(channels)) {
+			POOL.put(addr, Lists.newLinkedList());
+		}
+		channels = POOL.get(addr);
+		if (channels.size() < maxSizePerHost) {
+			channels.offer(source);
+		} else {
+			source.getChannel().close();
 		}
 	}
 
