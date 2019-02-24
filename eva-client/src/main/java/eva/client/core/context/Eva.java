@@ -100,7 +100,7 @@ public class Eva {
 						}
 					} finally {
 						ClientProvider.get().putback(wrap);
-						TEMP_FUTURE.invalidate(f);
+						TEMP_FUTURE.invalidate(requestId);
 					}
 				}
 			});
@@ -130,6 +130,7 @@ public class Eva {
 
 		@Override
 		public V get(long arg0, TimeUnit arg2) throws InterruptedException, ExecutionException, TimeoutException {
+			cdl = new CountDownLatch(1);
 			cdl.await(arg0, arg2);
 			if (Objects.isNull(result)) {
 				throw new TimeoutException("Timeout, while waiting for the result. Request ID: " + requestId);

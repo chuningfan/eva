@@ -13,7 +13,7 @@ public class ClientService {
 		TestInterface intf = Eva.getService(TestInterface.class, new SpecifiedConfig() {
 			@Override
 			public int getTimeout() {
-				return 300;
+				return 30;
 			}
 		});
 		String res = intf.testStr(System.currentTimeMillis());

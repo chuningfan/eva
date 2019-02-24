@@ -57,9 +57,8 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 					@Override
 					public void uncaughtException(Thread t, Throwable e) {
 						e.printStackTrace();
-						LOG.error(e.getMessage());
 						notifyObservers(StatusEvent.getFailedEvent(e));
-						stop();
+						LOG.error(e.getMessage());
 					}
 				};
 				thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
