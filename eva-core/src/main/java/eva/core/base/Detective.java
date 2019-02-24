@@ -63,7 +63,12 @@ public abstract class Detective implements Observer, Callable<Void> {
 						lock.lock();
 						Thread.sleep(15000L);
 						boolean status = NetUtil.pingHost(address.getAddress().getHostAddress(), address.getPort());
-						LOG.trace("Heart beat keeper: " + (!status ? "Cannot reach to " : "Reached to ") + address.getAddress().getHostAddress()+ ":" + address.getPort());
+						String targetAddress = address.getAddress().getHostAddress()+ ":" + address.getPort();
+						if (status) {
+							LOG.trace("Heart beat keeper: Reached to " + targetAddress);
+						} else {
+							LOG.warn("Heart beat keeper: Cannot reach to " + targetAddress);
+						}
 						if (!status) {
 							isConnected = false;
 							condition.signal();
