@@ -40,12 +40,12 @@ public class NetUtil {
 			connect.connect(endpointSocketAddr,3000);
 			isReachable = connect.isConnected();
 		} catch (Exception e) {
-			LOG.trace(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
+			LOG.error(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
 		} finally {
 			try {
 				connect.close();
 			} catch (IOException e) {
-				LOG.trace(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
+				LOG.error(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
 			}
 		}
 		return isReachable;
