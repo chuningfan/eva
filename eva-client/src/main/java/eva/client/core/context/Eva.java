@@ -10,14 +10,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Maps;
 
 import eva.client.core.dto.ClientWrap;
+import eva.client.core.dto.SpecifiedConfig;
 import eva.common.global.RequestID;
-import eva.core.annotation.EvaCall;
+import eva.core.annotation.Fallback;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
 
@@ -39,7 +42,7 @@ public class Eva {
 	private static final Map<Class<?>, Object> PROXIES = Maps.newConcurrentMap();
 
 	@SuppressWarnings("unchecked")
-	public static final <T> T getService(Class<T> interfaceClass) {
+	public static final <T> T getService(Class<T> interfaceClass, SpecifiedConfig config) {
 		if (Objects.nonNull(PROXIES.get(interfaceClass))) {
 			return (T) PROXIES.get(interfaceClass);
 		} else {
@@ -61,17 +64,39 @@ public class Eva {
 					p.setRequestId(requestId);
 					ClientWrap wrap = ClientProvider.get().getSource(interfaceClass);
 					long timeout = ClientProvider.get().getGlobalTimeoutMillSec();
-					EvaCall call = interfaceClass.getAnnotation(EvaCall.class);
-					if (Objects.nonNull(call)) {
-						int timeoutVal = call.timeout();
-						timeout = call.timeUnit().toMillis(timeoutVal);
+//					EvaCall call = interfaceClass.getAnnotation(EvaCall.class);
+//					if (Objects.nonNull(call)) {
+//						int timeoutVal = call.timeout();
+//						timeout = call.timeUnit().toMillis(timeoutVal);
+//					}
+					Object fallbackObj = null;
+					if (Objects.nonNull(config) && config.getTimeout() > 0) {
+						timeout = config.getTimeoutUnit().toMillis(config.getTimeout());
+						fallbackObj = config.getFallback();
 					}
 					try {
 						wrap.getChannel().writeAndFlush(p);
 						Response response = f.get(timeout, TimeUnit.MILLISECONDS);
 						return response.getResult();
 					} catch (Exception e) {
-						throw e;
+						if (Objects.isNull(fallbackObj)) {
+							throw e;
+						}
+						if (Stream.of(fallbackObj.getClass().getInterfaces()).anyMatch(new Predicate<Class<?>>() {
+							@Override
+							public boolean test(Class<?> t) {
+								return t == interfaceClass;
+							}
+						})) {
+							Method fallbackMethod = fallbackObj.getClass().getDeclaredMethod(method.getName(), method.getParameterTypes());
+							if (Objects.nonNull(fallbackMethod.getAnnotation(Fallback.class))) {
+								return fallbackMethod.invoke(fallbackObj, args);
+							} else {
+								throw e;
+							}
+						} else {
+							throw new Exception("Fallback instance is not an implementation of " + interfaceClass);
+						}
 					} finally {
 						ClientProvider.get().putback(wrap);
 					}

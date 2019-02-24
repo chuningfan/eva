@@ -10,10 +10,6 @@ import java.util.concurrent.TimeUnit;
 @Target(ElementType.LOCAL_VARIABLE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface EvaCall {
-	
-	int timeout() default 3;
-	
-	TimeUnit timeUnit() default TimeUnit.SECONDS;
+public @interface Fallback {
 	
 }
