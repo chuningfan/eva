@@ -59,7 +59,7 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 						e.printStackTrace();
 						LOG.error(e.getMessage());
 						notifyObservers(StatusEvent.getFailedEvent(e));
-						t.interrupt();
+						stop();
 					}
 				};
 				thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
