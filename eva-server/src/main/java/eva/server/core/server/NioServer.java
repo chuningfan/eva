@@ -61,12 +61,14 @@ public class NioServer extends BaseServer {
 		ServerBootstrap b = new ServerBootstrap();
 		b.group(bossGroup, workerGroup);
 		b.channel(NioServerSocketChannel.class);
-		b.childHandler(new ServerChannelInitializer());
-		b.option(ChannelOption.SO_BACKLOG, 128);
+		b.option(ChannelOption.SO_BACKLOG, 1024);
+		b.option(ChannelOption.SO_RCVBUF, 10*1024*1024);
+		b.option(ChannelOption.SO_SNDBUF, 1024*1024);
 		b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+		b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
 		b.childOption(ChannelOption.TCP_NODELAY, true);
 		b.childOption(ChannelOption.SO_KEEPALIVE, true);
-        b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+        b.childHandler(new ServerChannelInitializer());
         if (config.isAsyncProcessing()) {
         	Processor.getInstance().init();
         }

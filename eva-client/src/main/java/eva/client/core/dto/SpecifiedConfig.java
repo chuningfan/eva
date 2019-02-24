@@ -4,9 +4,9 @@ import java.util.concurrent.TimeUnit;
 
 public class SpecifiedConfig {
 	
-	private int timeout;
+	private int timeout = 3;
 	
-	private TimeUnit timeoutUnit;
+	private TimeUnit timeoutUnit = TimeUnit.SECONDS;
 	
 	private Object fallback;
 

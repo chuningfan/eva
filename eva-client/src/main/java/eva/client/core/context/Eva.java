@@ -27,8 +27,7 @@ import eva.core.transport.Response;
 public class Eva {
 
 	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheBuilder.newBuilder()
-            .expireAfterAccess(30, TimeUnit.SECONDS).maximumSize(8192)
-            .build();
+			.expireAfterWrite(30000, TimeUnit.MILLISECONDS).maximumSize(8192).build();
 
 	private static ClassLoader LOADER = null;
 
@@ -44,7 +43,7 @@ public class Eva {
 	public static final <T> T getService(Class<T> interfaceClass) {
 		return getService(interfaceClass, null);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public static final <T> T getService(Class<T> interfaceClass, SpecifiedConfig config) {
 		if (Objects.nonNull(PROXIES.get(interfaceClass))) {
@@ -58,6 +57,7 @@ public class Eva {
 					Object[] methodArgs = args;
 					long requestId = RequestID.getInstance().get();
 					ResponseFuture<Response> f = new ResponseFuture<Response>();
+					f.setRequestId(requestId);
 					TEMP_FUTURE.put(requestId, f);
 					System.out.println("put ID=" + requestId + ">>>>>>>>" + TEMP_FUTURE.stats());
 					Packet p = new Packet();
@@ -75,6 +75,7 @@ public class Eva {
 					}
 					try {
 						wrap.getChannel().writeAndFlush(p);
+						System.out.println("Invoke ID=" + requestId + "<<<<<<<<<<<<<<<<<<<<<");
 						Response response = f.get(timeout, TimeUnit.MILLISECONDS);
 						return response.getResult();
 					} catch (Exception e) {
@@ -87,7 +88,8 @@ public class Eva {
 								return t == interfaceClass;
 							}
 						})) {
-							Method fallbackMethod = fallbackObj.getClass().getDeclaredMethod(method.getName(), method.getParameterTypes());
+							Method fallbackMethod = fallbackObj.getClass().getDeclaredMethod(method.getName(),
+									method.getParameterTypes());
 							if (Objects.nonNull(fallbackMethod.getAnnotation(Fallback.class))) {
 								return fallbackMethod.invoke(fallbackObj, args);
 							} else {
@@ -98,21 +100,24 @@ public class Eva {
 						}
 					} finally {
 						ClientProvider.get().putback(wrap);
+						TEMP_FUTURE.invalidate(f);
 					}
 				}
 			});
 			PROXIES.put(interfaceClass, proxy);
 			return proxy;
 		}
-		
+
 	}
 
 	static final class ResponseFuture<V> implements Future<V> {
 
+		private long requestId;
+
 		private volatile V result;
-		
+
 		private CountDownLatch cdl = new CountDownLatch(1);
-		
+
 		@Override
 		public boolean cancel(boolean arg0) {
 			return false;
@@ -127,7 +132,7 @@ public class Eva {
 		public V get(long arg0, TimeUnit arg2) throws InterruptedException, ExecutionException, TimeoutException {
 			cdl.await(arg0, arg2);
 			if (Objects.isNull(result)) {
-				throw new TimeoutException("Timeout, while waiting for the result.");
+				throw new TimeoutException("Timeout, while waiting for the result. Request ID: " + requestId);
 			}
 			return result;
 		}
@@ -148,13 +153,20 @@ public class Eva {
 			this.result = response;
 			cdl.countDown();
 		}
-		
+
+		public long getRequestId() {
+			return requestId;
+		}
+
+		public void setRequestId(long requestId) {
+			this.requestId = requestId;
+		}
+
 	}
-	
+
 	static final ResponseFuture<Response> getFuture(long requestId) {
-		ResponseFuture<Response> f =  TEMP_FUTURE.getIfPresent(requestId);
+		ResponseFuture<Response> f = TEMP_FUTURE.getIfPresent(requestId);
 		if (Objects.nonNull(f)) {
-			TEMP_FUTURE.invalidate(f);
 			return f;
 		}
 		return null;
