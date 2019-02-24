@@ -41,6 +41,10 @@ public class Eva {
 
 	private static final Map<Class<?>, Object> PROXIES = Maps.newConcurrentMap();
 
+	public static final <T> T getService(Class<T> interfaceClass) {
+		return getService(interfaceClass, null);
+	}
+	
 	@SuppressWarnings("unchecked")
 	public static final <T> T getService(Class<T> interfaceClass, SpecifiedConfig config) {
 		if (Objects.nonNull(PROXIES.get(interfaceClass))) {
