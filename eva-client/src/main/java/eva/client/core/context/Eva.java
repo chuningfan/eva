@@ -64,11 +64,6 @@ public class Eva {
 					p.setRequestId(requestId);
 					ClientWrap wrap = ClientProvider.get().getSource(interfaceClass);
 					long timeout = ClientProvider.get().getGlobalTimeoutMillSec();
-//					EvaCall call = interfaceClass.getAnnotation(EvaCall.class);
-//					if (Objects.nonNull(call)) {
-//						int timeoutVal = call.timeout();
-//						timeout = call.timeUnit().toMillis(timeoutVal);
-//					}
 					Object fallbackObj = null;
 					if (Objects.nonNull(config) && config.getTimeout() > 0) {
 						timeout = config.getTimeoutUnit().toMillis(config.getTimeout());
