@@ -4,17 +4,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.ReentrantLock;
 
 import eva.core.transport.Response;
 
 public class ResponseFuture implements Future<Response> {
 
-	private ReentrantLock lock = new ReentrantLock();
-	
-	private Condition condition = lock.newCondition();
-	
 	@Override
 	public boolean cancel(boolean arg0) {
 		return false;

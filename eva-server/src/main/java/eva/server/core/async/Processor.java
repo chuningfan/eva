@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import com.esotericsoftware.minlog.Log;
 import com.google.common.collect.Queues;
 
 import eva.core.exception.EvaServerException;
@@ -44,7 +43,7 @@ public class Processor {
 								flag = queue.offer(r, 500, TimeUnit.MILLISECONDS);
 							} catch (InterruptedException e) {
 								e.printStackTrace();
-								LOG.warn("Retry offer task into queue failed. ");
+								LOG.warn("Retrying offer task into queue failed. ");
 							}
 						}
 						if (!flag) {
@@ -120,7 +119,6 @@ public class Processor {
 					ChannelHandlerContext ctx = task.getCtx();
 					if (ctx.channel().isActive() && ctx.channel().isOpen()) {
 						ctx.writeAndFlush(resp);
-						Log.info("Processed: " + packet.getRequestId());
 					}
 				} catch (InterruptedException | NoSuchMethodException | SecurityException | IllegalAccessException
 						| IllegalArgumentException | InvocationTargetException e) {
