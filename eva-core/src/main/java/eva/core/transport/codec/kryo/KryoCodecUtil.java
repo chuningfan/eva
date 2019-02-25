@@ -15,7 +15,6 @@ import io.netty.buffer.ByteBuf;
 public class KryoCodecUtil implements MessageCodecUtil {
 
     private KryoPool pool;
-//    private static Closer closer = Closer.create();
 
     public KryoCodecUtil(KryoPool pool) {
         this.pool = pool;
@@ -25,7 +24,6 @@ public class KryoCodecUtil implements MessageCodecUtil {
     	ByteArrayOutputStream byteArrayOutputStream = null;
         try {
             byteArrayOutputStream = new ByteArrayOutputStream();
-//            closer.register(byteArrayOutputStream);
             KryoSerialize kryoSerialization = new KryoSerialize(pool);
             kryoSerialization.serialize(byteArrayOutputStream, message);
             byte[] body = byteArrayOutputStream.toByteArray();
@@ -33,11 +31,6 @@ public class KryoCodecUtil implements MessageCodecUtil {
             out.writeInt(dataLength);
             out.writeBytes(body);
         } finally {
-//        	try {
-//        		closer.close();
-//        	} catch (IOException e) {
-//        		e.printStackTrace();
-//        	}
         	CommonUtil.closeStreams(byteArrayOutputStream);
         }
     }
@@ -46,7 +39,6 @@ public class KryoCodecUtil implements MessageCodecUtil {
     	ByteArrayInputStream byteArrayInputStream = null;
         try {
             byteArrayInputStream = new ByteArrayInputStream(body);
-//            closer.register(byteArrayInputStream);
             KryoSerialize kryoSerialization = new KryoSerialize(pool);
             Object obj = kryoSerialization.deserialize(byteArrayInputStream);
             if (obj instanceof Packet) {
@@ -59,11 +51,6 @@ public class KryoCodecUtil implements MessageCodecUtil {
             }
             return obj;
         } finally {
-//        	try {
-//        		closer.close();
-//        	} catch (IOException e) {
-//        		e.printStackTrace();
-//        	}
         	CommonUtil.closeStreams(byteArrayInputStream);
         }
     }
