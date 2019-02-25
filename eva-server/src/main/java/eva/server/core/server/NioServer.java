@@ -24,6 +24,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -105,9 +107,11 @@ public class NioServer extends BaseServer {
 		@Override
 		protected void initChannel(SocketChannel ch) throws Exception {
 			ChannelPipeline pipeline = ch.pipeline();
+			pipeline.addLast(new LoggingHandler(LogLevel.DEBUG));
 			pipeline.addLast("decoder", getDecoder());
 	        pipeline.addLast("encoder", getEncoder());
 	        pipeline.addLast("handler", new NioServerHandler(config));
+	       
 		}
 	}
 

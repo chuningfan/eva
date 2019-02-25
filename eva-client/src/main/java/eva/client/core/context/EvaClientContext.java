@@ -2,6 +2,7 @@ package eva.client.core.context;
 
 import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -73,28 +74,34 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 		} else {
 			throw new EvaContextException("In client configuration file, both single host and registry address are configured but expect one!");
 		}
-		clientProvider.setMaxSizePerHost(config.getMaxSizePerProvider());
 		clientProvider.setGlobalTimeoutMillSec(config.getGlobalTimoutMilliSec());
-		Detective detec = new Detective() {
-			@Override
-			public void connect() {
-				StatusEvent event = StatusEvent.getStartupEvent();
-				try {
-					clientProvider.prepare();
-				} catch (Exception e) {
-					LOG.error("Cannot prepare channels, because of " + e.getMessage());
-					event.setStatus((short)1);
+		clientProvider.setCoreSizePerHost(config.getCoreSizePerHost());
+		// if the client is connected to a single host
+		if (Objects.nonNull(config.getSingleHostAddress()) && Objects.isNull(config.getRegistryAddress())) {
+			// start a daemon for re-connect the host's netty server if the connection is disconnected.
+			Detective singleHostConnectionDetective = new Detective() {
+				@Override
+				public void connect() {
+					StatusEvent event = StatusEvent.getStartupEvent();
+					try {
+						clientProvider.prepare();
+					} catch (Exception e) {
+						LOG.error("Cannot prepare channels, because of " + e.getMessage());
+						event.setStatus((short)1);
+					}
+					setChanged();
+					notifyObservers(event);
 				}
-				setChanged();
-				notifyObservers(event);
-			}
-			@Override
-			public InetSocketAddress targetAddress() {
-				return NetUtil.getAddress(clientProvider.getServerAddress());
-			}
-		};
-		addObserver(detec);
-		daemon.submit(detec);
+				@Override
+				public InetSocketAddress targetAddress() {
+					return NetUtil.getAddress(clientProvider.getServerAddress());
+				}
+			};
+			addObserver(singleHostConnectionDetective);
+			daemon.submit(singleHostConnectionDetective);
+		} else {
+			clientProvider.prepare();
+		}
 	}
 
 	public ClientProvider getClientProvider() {

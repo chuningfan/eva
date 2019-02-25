@@ -17,26 +17,18 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Maps;
 
-import eva.client.core.dto.ClientWrap;
+import eva.client.core.dto.ClientWrapper;
 import eva.client.core.dto.SpecifiedConfig;
 import eva.common.global.RequestID;
 import eva.core.annotation.Fallback;
+import eva.core.base.AbstractContext;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
 
-public class Eva {
+public class Eva extends AbstractContext {
 
 	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheBuilder.newBuilder()
-			.expireAfterWrite(30000, TimeUnit.MILLISECONDS).maximumSize(8192).build();
-
-	private static ClassLoader LOADER = null;
-
-	static {
-		LOADER = Thread.currentThread().getContextClassLoader();
-		if (Objects.isNull(LOADER)) {
-			LOADER = Eva.class.getClassLoader();
-		}
-	}
+			.expireAfterWrite(60 * 1000, TimeUnit.MILLISECONDS).maximumSize(8 * 1024).build();
 
 	private static final Map<Class<?>, Object> PROXIES = Maps.newConcurrentMap();
 
@@ -66,7 +58,7 @@ public class Eva {
 					p.setInterfaceClass(interfaceClass);
 					p.setMethodName(methodName);
 					p.setRequestId(requestId);
-					ClientWrap wrap = ClientProvider.get().getSource(interfaceClass);
+					ClientWrapper wrapper = ClientProvider.get().getSource(interfaceClass);
 					long timeout = ClientProvider.get().getGlobalTimeoutMillSec();
 					Object fallbackObj = null;
 					if (Objects.nonNull(config) && config.getTimeout() > 0) {
@@ -74,7 +66,7 @@ public class Eva {
 						fallbackObj = config.getFallback();
 					}
 					try {
-						wrap.getChannel().writeAndFlush(p);
+						wrapper.getChannel().writeAndFlush(p);
 						System.out.println("Invoke ID=" + requestId + "<<<<<<<<<<<<<<<<<<<<<");
 						Response response = f.get(timeout, TimeUnit.MILLISECONDS);
 						return response.getResult();
@@ -99,7 +91,7 @@ public class Eva {
 							throw new Exception("Fallback instance is not an implementation of " + interfaceClass);
 						}
 					} finally {
-						ClientProvider.get().putback(wrap);
+						ClientProvider.get().putback(wrapper);
 						TEMP_FUTURE.invalidate(requestId);
 					}
 				}

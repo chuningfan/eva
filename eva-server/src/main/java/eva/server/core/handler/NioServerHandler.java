@@ -30,6 +30,7 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 	
 	@Override
 	protected void channelRead0(ChannelHandlerContext ctx, Packet packet) throws Exception {
+		Log.info("Server received packet -------------->: " + packet.getRequestId());
 		Class<?> interfaceClass = packet.getInterfaceClass();
 		if (Objects.isNull(interfaceClass)) {
 			return;
@@ -75,7 +76,9 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+		ctx.flush();
 		ctx.close();
+		throw new Exception(cause);
 	}
 	
 }

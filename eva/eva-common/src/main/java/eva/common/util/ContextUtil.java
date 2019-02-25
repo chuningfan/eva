@@ -3,6 +3,7 @@ package eva.common.util;
 import java.io.File;
 import java.io.FileFilter;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
@@ -43,7 +44,7 @@ public class ContextUtil {
 		return collection;
 	}
 	
-	private static void collectClassInstances(String dir, Set<Class<?>> collection, FileFilter...filters) throws ClassNotFoundException {
+	private static void collectClassInstances(String dir, Collection<Class<?>> collection, FileFilter...filters) throws ClassNotFoundException {
 		File path = new File(dir);
 		if (path.exists() && path.isDirectory()) {
 			File[] files = path.listFiles();

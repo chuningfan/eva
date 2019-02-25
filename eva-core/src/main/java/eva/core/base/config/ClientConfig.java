@@ -10,7 +10,7 @@ public class ClientConfig {
 	
 	private String singleHostAddress;
 	
-	private int maxSizePerProvider = 5;
+	private int coreSizePerHost = 3; 
 	
 	private long globalTimoutMilliSec = 3000;
 	
@@ -47,14 +47,6 @@ public class ClientConfig {
 		this.singleHostAddress = singleHostAddress;
 	}
 
-	public int getMaxSizePerProvider() {
-		return maxSizePerProvider;
-	}
-
-	public void setMaxSizePerProvider(int maxSizePerProvider) {
-		this.maxSizePerProvider = maxSizePerProvider;
-	}
-
 	public long getGlobalTimoutMilliSec() {
 		return globalTimoutMilliSec;
 	}
@@ -63,5 +55,12 @@ public class ClientConfig {
 		this.globalTimoutMilliSec = globalTimoutMilliSec;
 	}
 
-	
+	public int getCoreSizePerHost() {
+		return coreSizePerHost;
+	}
+
+	public void setCoreSizePerHost(int coreSizePerHost) {
+		this.coreSizePerHost = coreSizePerHost;
+	}
+
 }

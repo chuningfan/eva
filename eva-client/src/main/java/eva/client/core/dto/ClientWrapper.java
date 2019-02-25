@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import io.netty.channel.Channel;
 
-public class ClientWrap implements Serializable {
+public class ClientWrapper implements Serializable {
 	
 	private static final long serialVersionUID = -8823434525171210732L;
 
@@ -12,7 +12,7 @@ public class ClientWrap implements Serializable {
 	
 	private String targetAddress;
 
-	public ClientWrap(Channel channel, String targetAddress) {
+	public ClientWrapper(Channel channel, String targetAddress) {
 		this.channel = channel;
 		this.targetAddress = targetAddress;
 	}
