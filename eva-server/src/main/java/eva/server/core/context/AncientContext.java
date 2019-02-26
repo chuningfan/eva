@@ -106,27 +106,6 @@ public class AncientContext extends AbstractContext
 									}
 								});
 							}
-							// ExecutorService registryWorker =
-							// Executors.newSingleThreadExecutor(new
-							// DefaultThreadFactory("registry-worker") {
-							// @Override
-							// public Thread newThread(Runnable r) {
-							// final Thread thread =
-							// Executors.defaultThreadFactory().newThread(r);
-							// thread.setDaemon(true);
-							// thread.setName(config.getServerId() +
-							// ">Registry-Daemon");
-							// thread.setUncaughtExceptionHandler(new
-							// UncaughtExceptionHandler() {
-							// @Override
-							// public void uncaughtException(Thread arg0,
-							// Throwable arg1) {
-							//
-							// }
-							// });
-							// return thread;
-							// }
-							// });
 						}
 
 						@Override
