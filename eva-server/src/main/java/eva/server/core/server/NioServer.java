@@ -107,7 +107,7 @@ public class NioServer extends BaseServer {
 		@Override
 		protected void initChannel(SocketChannel ch) throws Exception {
 			ChannelPipeline pipeline = ch.pipeline();
-			pipeline.addLast(new LoggingHandler(LogLevel.INFO));
+			pipeline.addLast(new LoggingHandler(LogLevel.DEBUG));
 			pipeline.addLast("decoder", getDecoder());
 	        pipeline.addLast("encoder", getEncoder());
 	        pipeline.addLast("handler", new NioServerHandler(config));

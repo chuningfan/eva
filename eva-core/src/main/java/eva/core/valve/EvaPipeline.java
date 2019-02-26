@@ -2,24 +2,25 @@ package eva.core.valve;
 
 import java.util.Objects;
 
-public class EvaPipeline {
+public class EvaPipeline<T, R extends Result> {
 
-	private Valve firstNode;
+	private Valve<T, R> firstNode;
 	
-	private Valve lastNode;
+	private Valve<T, R> lastNode;
 	
 
-	public final void addLast(Valve valve) {
+	public final EvaPipeline<T, R> addLast(Valve<T, R> valve) {
 		if (Objects.isNull(firstNode)) {
 			this.firstNode = valve;
 		} else {
-			this.firstNode.setNext(valve);
-			valve.setPrevious(this.firstNode);
+			this.lastNode.setNext(valve);
+			valve.setPrevious(this.lastNode);
 		}
 		this.lastNode = valve;
+		return this;
 	}
 
-	public final void addFirst(Valve valve) {
+	public final EvaPipeline<T, R> addFirst(Valve<T, R> valve) {
 		if (Objects.isNull(lastNode)) {
 			this.lastNode = valve;
 		} else {
@@ -27,13 +28,14 @@ public class EvaPipeline {
 			valve.setNext(this.firstNode);
 		}
 		this.firstNode = valve;
+		return this;
 	}
 
-	public final void removeLast() {
+	public final EvaPipeline<T, R> removeLast() {
 		if (Objects.isNull(this.lastNode)) {
 			this.lastNode = null;
 		} else {
-			Valve previous = this.lastNode.getPrevious();
+			Valve<T, R> previous = this.lastNode.getPrevious();
 			if (Objects.isNull(previous)) {
 				this.firstNode = null;
 				this.lastNode = null;
@@ -42,13 +44,14 @@ public class EvaPipeline {
 				this.lastNode = previous;
 			}
 		}
+		return this;
 	}
 
-	public final void removeFirst() {
+	public final EvaPipeline<T, R> removeFirst() {
 		if (Objects.isNull(this.firstNode)) {
 			this.firstNode = null;
 		} else {
-			Valve next = this.firstNode.getNext();
+			Valve<T, R> next = this.firstNode.getNext();
 			if (Objects.isNull(next)) {
 				this.firstNode = null;
 				this.lastNode = null;
@@ -57,22 +60,24 @@ public class EvaPipeline {
 				this.firstNode = next;
 			}
 		}
+		return this;
 	}
 
-	public Object doProcess(Direction dire, Object data) {
+	@SuppressWarnings("unchecked")
+	public R doProcess(Direction dire, T data, R result) throws Exception {
 		switch (dire) {
 		case FORWARD:
 			if (Objects.isNull(firstNode)) {
-				return null;
+				return (R) result.setSuccessful(false).setMessage("Pipeline: No valve was found for FORWARD!");
 			}
-			return firstNode.process(data, dire);
+			return firstNode.process(dire, data, result);
 		case BACKWARD:
 			if (Objects.isNull(lastNode)) {
-				return null;
+				return (R) result.setSuccessful(false).setMessage("Pipeline: No valve was found for BACKWARD!");
 			}
-			return lastNode.process(data, dire);
+			return lastNode.process(dire, data, result);
 		default:
-			return null;
+			return (R) result.setSuccessful(false).setMessage("Pipeline: Unknown direction!");
 		}
 	}
 

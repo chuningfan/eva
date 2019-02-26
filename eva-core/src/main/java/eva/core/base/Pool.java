@@ -14,9 +14,9 @@ public interface Pool<T, Condition> {
 	
 	void clear();
 	
-	T getSource(Class<?> serviceClass) throws EvaClientException;
+	T getSource(Class<?> serviceClass) throws EvaClientException, InterruptedException;
 	
 	T create(Condition condition) throws EvaClientException;
 	
-	void putback(T source);
+	void putback(T source) throws EvaClientException;
 }

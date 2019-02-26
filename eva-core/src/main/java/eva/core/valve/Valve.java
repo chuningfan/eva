@@ -4,31 +4,27 @@ import java.util.Objects;
 
 import eva.core.valve.EvaPipeline.Direction;
 
-public abstract class Valve {
+public abstract class Valve<T, R extends Result> {
 
-	private Valve previous;
+	private Valve<T, R> previous;
 
-	private Valve next;
+	private Valve<T, R> next;
 
 	private String name;
 
-	public Valve(String name) {
-		this.name = name;
-	}
-
-	public Valve getPrevious() {
+	public Valve<T, R> getPrevious() {
 		return previous;
 	}
 
-	public void setPrevious(Valve previous) {
+	public void setPrevious(Valve<T, R> previous) {
 		this.previous = previous;
 	}
 
-	public Valve getNext() {
+	public Valve<T, R> getNext() {
 		return next;
 	}
 
-	public void setNext(Valve next) {
+	public void setNext(Valve<T, R> next) {
 		this.next = next;
 	}
 
@@ -40,23 +36,26 @@ public abstract class Valve {
 		this.name = name;
 	}
 
-	protected Object process(Object obj, Direction dire) {
-		Object object = process0(obj);
-		switch (dire) {
-		case FORWARD:
-			if (Objects.nonNull(next)) {
-				return next.process(object, dire);
+	@SuppressWarnings("unchecked")
+	protected R process(Direction dire, T data, R result) throws Exception {
+		Result res = process0(data, result);
+		if (res.isSuccessful()) {
+			switch (dire) {
+			case FORWARD:
+				if (Objects.nonNull(next)) {
+					return next.process(dire, data, result);
+				}
+				break;
+			case BACKWARD:
+				if (Objects.nonNull(previous)) {
+					return previous.process(dire, data, result);
+				}
+				break;
 			}
-			break;
-		case BACKWARD:
-			if (Objects.nonNull(previous)) {
-				return previous.process(object, dire);
-			}
-			break;
 		}
-		return object;
+		return (R) res;
 	}
 
-	protected abstract Object process0(Object obj);
+	protected abstract R process0(T data, R result) throws Exception;
 
 }
