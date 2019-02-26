@@ -58,7 +58,8 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 				resp.setStateCode(1);
 				resp.setMessage("failed");
 			}
-			ctx.writeAndFlush(resp);
+			if (ctx.channel().isActive() && ctx.channel().isOpen())
+				ctx.writeAndFlush(resp);
 		} else {
 			Task task = new Task(packet, ctx);
 			Queue.getInstance().addToQueue(task);
