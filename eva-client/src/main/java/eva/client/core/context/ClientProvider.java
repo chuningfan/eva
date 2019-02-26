@@ -10,6 +10,9 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.collect.Maps;
@@ -40,22 +43,24 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
+	public static final ClientProvider get() {
+		return ClientProviderHolder.INSTANCE;
+	}
+	
+	private static final class ClientProviderHolder {
+		private static final ClientProvider INSTANCE = new ClientProvider();
+	}
+	
 	// key: address, value: channels
 	private volatile Map<String, EvaAddressChannelCollection<ClientWrapper>> POOL = Maps.newConcurrentMap();
 
 	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
 
 	private ReentrantLock lock = new ReentrantLock();
+	
+	private ScheduledExecutorService poolWatcher;
 
 	private KryoCodecUtil kryoCodecUtil = new KryoCodecUtil(KryoPoolFactory.getKryoPoolInstance());
-
-	private static final class ClientProviderHolder {
-		private static final ClientProvider INSTANCE = new ClientProvider();
-	}
-
-	public static final ClientProvider get() {
-		return ClientProviderHolder.INSTANCE;
-	}
 
 	private boolean isSingleHost;
 
@@ -68,12 +73,66 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 	private long globalTimeoutMillSec;
 	
 	private int coreSizePerHost;
-
+	
+	private int maxSizePerHost;
+	
 	private ClientProvider() {
+		Set<String> addrSet = null;
 		try {
 			localHostIP = InetAddress.getLocalHost().getHostAddress();
+			addrSet = POOL.keySet();
+			if (Objects.isNull(addrSet) || addrSet.isEmpty()) {
+				Thread.sleep(1 * 3000);
+			}
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		this.poolWatcher = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+			@Override
+			public Thread newThread(Runnable r) {
+				final Thread daemon = Executors.defaultThreadFactory().newThread(r);
+				daemon.setDaemon(true);
+				daemon.setName("Pool-Watcher");
+				return daemon;
+			}
+		});
+		if (Objects.nonNull(addrSet) && !addrSet.isEmpty()) {
+			for (String addr: addrSet) {
+				EvaAddressChannelCollection<ClientWrapper> evaAddrChannels = POOL.get(addr);
+				if (Objects.nonNull(evaAddrChannels) && !evaAddrChannels.isEmpty()) {
+					poolWatcher.scheduleAtFixedRate(new Runnable() {
+						private volatile int previousSize = -1;
+						private volatile int factor = 0;
+						@Override
+						public void run() {
+							int currentSize = evaAddrChannels.getCurrentSize();
+							int retryTime = 0;
+							if (previousSize < 0) {
+								do {
+									previousSize = currentSize;
+									retryTime++;
+								} while (previousSize < 1 && retryTime < 3);
+							} else {
+								if (previousSize <= currentSize) {
+									if (currentSize > coreSizePerHost) {
+										factor ++;
+										if (factor >= 3) {
+											while (currentSize > coreSizePerHost) {
+												evaAddrChannels.WatcherPoll();
+											}
+											factor = 0;
+										}
+									}
+								} else {
+									factor --;
+								}
+							}
+						}
+					}, 15, 10 * 1000, TimeUnit.MILLISECONDS);
+				}
+			}
 		}
 	}
 
@@ -100,7 +159,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 	private void createAddressPool(String addr) {
 		EvaAddressChannelCollection<ClientWrapper> llist = POOL.get(addr);
 		if (Objects.isNull(llist)) {
-			llist = new EvaAddressChannelCollection<ClientWrapper>(coreSizePerHost);
+			llist = new EvaAddressChannelCollection<ClientWrapper>(coreSizePerHost, maxSizePerHost, addr);
 			POOL.put(addr, llist);
 		}
 		Executors.newSingleThreadExecutor().submit(() -> {
@@ -196,6 +255,14 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
 	public void setCoreSizePerHost(int coreSizePerHost) {
 		this.coreSizePerHost = coreSizePerHost;
+	}
+
+	public int getMaxSizePerHost() {
+		return maxSizePerHost;
+	}
+
+	public void setMaxSizePerHost(int maxSizePerHost) {
+		this.maxSizePerHost = maxSizePerHost;
 	}
 
 	@Override

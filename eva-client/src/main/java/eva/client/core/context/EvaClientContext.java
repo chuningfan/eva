@@ -76,6 +76,7 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 		}
 		clientProvider.setGlobalTimeoutMillSec(config.getGlobalTimoutMilliSec());
 		clientProvider.setCoreSizePerHost(config.getCoreSizePerHost());
+		clientProvider.setMaxSizePerHost(config.getMaxSizePerHost());
 		// if the client is connected to a single host
 		if (Objects.nonNull(config.getSingleHostAddress()) && Objects.isNull(config.getRegistryAddress())) {
 			// start a daemon for re-connect the host's netty server if the connection is disconnected.
