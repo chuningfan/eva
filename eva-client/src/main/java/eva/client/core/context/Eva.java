@@ -20,6 +20,7 @@ import com.google.common.collect.Maps;
 import eva.client.core.dto.ClientWrapper;
 import eva.client.core.dto.SpecifiedConfig;
 import eva.common.global.RequestID;
+import eva.common.util.NetUtil;
 import eva.core.annotation.Fallback;
 import eva.core.base.AbstractContext;
 import eva.core.transport.Packet;
@@ -71,6 +72,7 @@ public class Eva extends AbstractContext {
 						Response response = f.get(timeout, TimeUnit.MILLISECONDS);
 						return response.getResult();
 					} catch (Exception e) {
+						ClientProvider.get().createIfNecessary(NetUtil.getAddress(wrapper.getTargetAddress()));
 						if (Objects.isNull(fallbackObj)) {
 							throw e;
 						}

@@ -53,6 +53,8 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 	private volatile Map<String, LinkedBlockingQueue<ClientWrapper>> POOL = Maps.newConcurrentMap();
 
 	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
+	
+	private volatile Map<InetSocketAddress, Bootstrap> ADDRESS_BOOTSTRAP = Maps.newConcurrentMap();
 
 	private ReentrantLock lock = new ReentrantLock();
 
@@ -80,7 +82,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		}
 	}
 
-	public synchronized boolean prepare() throws InterruptedException{
+	synchronized boolean prepare() throws InterruptedException{
 		clear();
 		if (!isSingleHost) {
 			INTERFACE_HOSTS = Registry.get().getAllNodes();
@@ -154,18 +156,23 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 			return null;
 		}
 		ClientWrapper wrap = null;
-		final Bootstrap bootstrap = new Bootstrap();
-		EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-		bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, Boolean.TRUE)
-				.option(ChannelOption.TCP_NODELAY, Boolean.TRUE).handler(new ChannelInitializer<SocketChannel>() {
-					@Override
-					protected void initChannel(SocketChannel ch) throws Exception {
-						ChannelPipeline pipeline = ch.pipeline();
-						pipeline.addLast(new KryoEncoder(kryoCodecUtil));
-						pipeline.addLast(new KryoDecoder(kryoCodecUtil));
-						pipeline.addLast(new EvaClientHandler());
-					}
-				});
+		Bootstrap existing = ADDRESS_BOOTSTRAP.get(address);
+		if (Objects.isNull(existing)) {
+			final Bootstrap bootstrap = new Bootstrap();
+			EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
+			bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, Boolean.TRUE)
+					.option(ChannelOption.TCP_NODELAY, Boolean.TRUE).handler(new ChannelInitializer<SocketChannel>() {
+						@Override
+						protected void initChannel(SocketChannel ch) throws Exception {
+							ChannelPipeline pipeline = ch.pipeline();
+							pipeline.addLast(new KryoEncoder(kryoCodecUtil));
+							pipeline.addLast(new KryoDecoder(kryoCodecUtil));
+							pipeline.addLast(new EvaClientHandler());
+						}
+					});
+			ADDRESS_BOOTSTRAP.put(address, bootstrap);
+		}
+		Bootstrap bootstrap = ADDRESS_BOOTSTRAP.get(address);
 		ChannelFuture channelFuture = bootstrap.connect(address.getAddress().getHostAddress(), address.getPort());
 		Channel channel = null;
 		try {
@@ -278,10 +285,24 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		LinkedBlockingQueue<ClientWrapper> channels = POOL.get(addr);
 		channels = POOL.get(addr);
 		boolean flag = channels.offer(source);
-		if (!flag && channels.size() < maxSizePerHost) {
-			source = create(NetUtil.getAddress(source.getTargetAddress()));
-			channels.offer(source);
+		if (!flag) {
+			if (channels.size() < maxSizePerHost) { 
+				source = create(NetUtil.getAddress(source.getTargetAddress()));
+				channels.offer(source);
+			} else {
+				source.getChannel().flush().close();
+			}
 		}
 	}
 
+	void createIfNecessary(InetSocketAddress address) throws Exception {
+		LinkedBlockingQueue<ClientWrapper> channels = POOL.get(NetUtil.getAddress(address));
+		if (channels.size() < coreSizePerHost) {
+			ClientWrapper wrapper = create(address);
+			if (Objects.nonNull(wrapper)) {
+				channels.offer(wrapper);
+			}
+		}
+	}
+	
 }
