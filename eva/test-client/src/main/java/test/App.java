@@ -16,11 +16,11 @@ public class App {
 	}
 	
 	@Bean
-	public EvaClientContext evaClientContext() throws EvaContextException {
+	public EvaClientContext evaClientContext() throws EvaContextException, InterruptedException {
 		ClientConfig config = new ClientConfig();
 		config.setClientId(1L);
 		config.setGlobalTimoutMilliSec(30000);
-		config.setCoreSizePerHost(20);
+		config.setCoreSizePerHost(10);
 		config.setSingleHostAddress("127.0.0.1:8763");
 		return new EvaClientContext(config);
 	}

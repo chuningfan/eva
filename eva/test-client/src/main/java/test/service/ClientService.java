@@ -9,7 +9,7 @@ import test.TestInterface;
 @Service
 public class ClientService {
 	
-	public void doTest() {
+	public String doTest() {
 		TestInterface intf = Eva.getService(TestInterface.class, new SpecifiedConfig() {
 			@Override
 			public int getTimeout() {
@@ -17,7 +17,7 @@ public class ClientService {
 			}
 		});
 		String res = intf.testStr(System.currentTimeMillis());
-		System.out.println(res);
+		return res;
 	}
 	
 }

@@ -39,43 +39,6 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 		if (!res.isSuccessful()) {
 			throw res.getException();
 		}
-		// Class<?> interfaceClass = packet.getInterfaceClass();
-		// if (Objects.isNull(interfaceClass)) {
-		// return;
-		// }
-		// Object proxy = CONTEXT.getBean(interfaceClass);
-		// Response resp = new Response();
-		// resp.setRequestId(packet.getRequestId());
-		// if (!config.isAsyncProcessing()) {
-		// if (Objects.nonNull(proxy)) {
-		// Class<?>[] types = packet.getArgTypes();
-		// Method method = null;
-		// if (Objects.nonNull(types)) {
-		// method = interfaceClass.getDeclaredMethod(packet.getMethodName(),
-		// types);
-		// } else {
-		// method = interfaceClass.getDeclaredMethod(packet.getMethodName());
-		// }
-		// Class<?> returnType = method.getReturnType();
-		// if (!"void".equalsIgnoreCase(returnType.getName())) {
-		// Object res = method.invoke(proxy, packet.getArgs());
-		// resp.setResult(res);
-		// } else {
-		// method.invoke(proxy, packet.getArgs());
-		// resp.setResult(ReturnVoid.getInstance());
-		// }
-		// resp.setStateCode(0);
-		// resp.setMessage("ok");
-		// } else {
-		// resp.setStateCode(1);
-		// resp.setMessage("failed");
-		// }
-		// if (ctx.channel().isActive() && ctx.channel().isOpen())
-		// ctx.writeAndFlush(resp);
-		// } else {
-		// Task task = new Task(packet, ctx);
-		// Queue.getInstance().addToQueue(task);
-		// }
 	}
 
 	@Override

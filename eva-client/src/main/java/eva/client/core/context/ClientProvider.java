@@ -8,10 +8,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -57,11 +56,9 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
 	private ReentrantLock lock = new ReentrantLock();
 
-	private ScheduledExecutorService poolWatcher;
-
 	private KryoCodecUtil kryoCodecUtil = new KryoCodecUtil(KryoPoolFactory.getKryoPoolInstance());
 
-	private boolean isSingleHost;
+	private volatile boolean isSingleHost;
 
 	private String serverAddress;
 
@@ -81,19 +78,9 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
-		this.poolWatcher = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
-			@Override
-			public Thread newThread(Runnable r) {
-				final Thread daemon = Executors.defaultThreadFactory().newThread(r);
-				daemon.setDaemon(true);
-				daemon.setName("Pool-Watcher");
-				return daemon;
-			}
-		});
-
 	}
 
-	public void prepare() {
+	public synchronized boolean prepare() throws InterruptedException{
 		clear();
 		if (!isSingleHost) {
 			INTERFACE_HOSTS = Registry.get().getAllNodes();
@@ -111,71 +98,42 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 			String addr = serverAddress;
 			createAddressPool(addr);
 		}
-		// Set<String> addrSet = POOL.keySet();
-		// for (String addr: addrSet) {
-		// EvaAddressChannelCollection<ClientWrapper> evaAddrChannels =
-		// POOL.get(addr);
-		// if (Objects.nonNull(evaAddrChannels) && !evaAddrChannels.isEmpty()) {
-		// poolWatcher.scheduleAtFixedRate(new Runnable() {
-		// private volatile int previousSize = -1;
-		// private volatile int factor = 0;
-		// @Override
-		// public void run() {
-		// int currentSize = evaAddrChannels.size();
-		// int retryTime = 0;
-		// if (previousSize < 0) {
-		// do {
-		// previousSize = currentSize;
-		// retryTime++;
-		// } while (previousSize < 1 && retryTime < 3);
-		// } else {
-		// if (previousSize <= currentSize) {
-		// if (currentSize > coreSizePerHost) {
-		// factor ++;
-		// if (factor >= 3) {
-		// while (currentSize > coreSizePerHost) {
-		// evaAddrChannels.watcherPoll();
-		// }
-		// factor = 0;
-		// }
-		// }
-		// } else {
-		// factor --;
-		// }
-		// }
-		// }
-		// }, 15, 10 * 1000, TimeUnit.MILLISECONDS);
-		// }
-		// }
+		Thread.sleep(3 * 1000L);
+//		Set<String> addrSet = POOL.keySet();
+//		for (String addr : addrSet) {
+//			if (isSingleHost && POOL.get(addr).isEmpty()) {
+//				return false;
+//			}
+//		}
+		if (isSingleHost) {
+			return POOL.get(serverAddress).size() > 0;
+		}
+		return true;
 	}
 
-	private void createAddressPool(String addr) {
+	private synchronized void createAddressPool(String addr) {
 		LinkedBlockingQueue<ClientWrapper> llist = POOL.get(addr);
 		if (Objects.isNull(llist)) {
 			llist = new LinkedBlockingQueue<>(coreSizePerHost);
-			// new EvaAddressChannelCollection<ClientWrapper>(coreSizePerHost,
-			// maxSizePerHost, addr) {
-			// @Override
-			// public ClientWrapper createSource(Object... args) {
-			// try {
-			// return create(NetUtil.getAddress(addr));
-			// } catch (EvaClientException e) {
-			// e.printStackTrace();
-			// }
-			// return null;
-			// }
-			// };
 			POOL.put(addr, llist);
 		}
-		Executors.newSingleThreadExecutor().submit(() -> {
+		ExecutorService es = Executors.newSingleThreadExecutor();
+		es.submit(() -> {
+			ClientWrapper wrapper = null;
 			for (int i = 0; i < coreSizePerHost; i++) {
 				try {
-					POOL.get(addr).add(create(NetUtil.getAddress(addr)));
+					wrapper = create(NetUtil.getAddress(addr));
+					if (Objects.nonNull(wrapper)) {
+						POOL.get(addr).put(wrapper);
+					} else {
+						break;
+					}
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 		});
+		es.shutdown();
 	}
 
 	@Override
@@ -189,11 +147,14 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
 	}
 
-	private Bootstrap bootstrap = new Bootstrap();
-
 	@Override
-	public ClientWrapper create(InetSocketAddress address) throws EvaClientException {
+	public ClientWrapper create(InetSocketAddress address) throws Exception {
+		boolean status = NetUtil.pingHost(address.getAddress().getHostAddress(), address.getPort());
+		if (!status) {
+			return null;
+		}
 		ClientWrapper wrap = null;
+		final Bootstrap bootstrap = new Bootstrap();
 		EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
 		bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, Boolean.TRUE)
 				.option(ChannelOption.TCP_NODELAY, Boolean.TRUE).handler(new ChannelInitializer<SocketChannel>() {
@@ -282,7 +243,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 	}
 
 	@Override
-	public ClientWrapper getSource(Class<?> serviceClass) throws EvaClientException, InterruptedException {
+	public ClientWrapper getSource(Class<?> serviceClass) throws Exception {
 		String address = null;
 		if (isSingleHost) {
 			address = getChannelAddress(null);
@@ -296,22 +257,28 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 			createAddressPool(address);
 		}
 		ClientWrapper wrap = llist.poll(300, TimeUnit.MILLISECONDS);
-		while (Objects.isNull(wrap) && retryTime++ < 3) {
+		while (Objects.isNull(wrap)
+				&& retryTime++ < 3
+				) {
 			wrap = llist.poll(300, TimeUnit.MILLISECONDS);
 		}
-		if (Objects.isNull(wrap)) {
+		if (Objects.isNull(wrap) && llist.size() < maxSizePerHost) {
 			return create(NetUtil.getAddress(address));
+		} else {
+			while (Objects.isNull(wrap)) {
+				wrap = llist.poll(300, TimeUnit.MILLISECONDS);
+			}
 		}
 		return wrap;
 	}
 
 	@Override
-	public void putback(ClientWrapper source) throws EvaClientException {
+	public void putback(ClientWrapper source) throws Exception {
 		String addr = source.getTargetAddress();
 		LinkedBlockingQueue<ClientWrapper> channels = POOL.get(addr);
 		channels = POOL.get(addr);
 		boolean flag = channels.offer(source);
-		if (!flag) {
+		if (!flag && channels.size() < maxSizePerHost) {
 			source = create(NetUtil.getAddress(source.getTargetAddress()));
 			channels.offer(source);
 		}

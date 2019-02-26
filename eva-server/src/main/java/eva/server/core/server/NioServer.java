@@ -1,5 +1,7 @@
 package eva.server.core.server;
 
+import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,6 +28,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -111,7 +114,9 @@ public class NioServer extends BaseServer {
 			pipeline.addLast("decoder", getDecoder());
 	        pipeline.addLast("encoder", getEncoder());
 	        pipeline.addLast("handler", new NioServerHandler(config));
-	       
+	        if (config.getServerTimeoutSec() > 0) {
+	        	pipeline.addLast(new ReadTimeoutHandler(config.getServerTimeoutSec()));
+	        }
 		}
 	}
 

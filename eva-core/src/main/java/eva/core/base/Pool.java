@@ -1,6 +1,5 @@
 package eva.core.base;
 
-import eva.core.exception.EvaClientException;
 /**
  * This interface is for eva client to pooling connetion resources 
  * 
@@ -14,9 +13,9 @@ public interface Pool<T, Condition> {
 	
 	void clear();
 	
-	T getSource(Class<?> serviceClass) throws EvaClientException, InterruptedException;
+	T getSource(Class<?> serviceClass) throws Exception;
 	
-	T create(Condition condition) throws EvaClientException;
+	T create(Condition condition) throws Exception;
 	
-	void putback(T source) throws EvaClientException;
+	void putback(T source) throws Exception;
 }

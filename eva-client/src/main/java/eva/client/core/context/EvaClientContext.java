@@ -26,17 +26,17 @@ import io.netty.util.internal.StringUtil;
 public class EvaClientContext extends AbstractContext implements BaseContext {
 
 	private static final Logger LOG = LoggerFactory.getLogger(EvaClientContext.class);
-	
+
 	// key: interface name, value addresses
 	static Map<String, Set<String>> REGISTRY_DATA;
-	
+
 	private final ClientConfig config;
-	
+
 	private final ClientProvider clientProvider = ClientProvider.get();
-	
+
 	private final ExecutorService daemon;
-	
-	public EvaClientContext(ClientConfig config) throws EvaContextException {
+
+	public EvaClientContext(ClientConfig config) throws EvaContextException, InterruptedException {
 		this.config = config;
 		daemon = Executors.newSingleThreadExecutor(new ThreadFactory() {
 			@Override
@@ -49,7 +49,7 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 		});
 		init();
 	}
-	
+
 	@Override
 	public <T> T getBean(Class<T> beanClass) {
 		throw new UnsupportedOperationException();
@@ -61,38 +61,50 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 	}
 
 	@Override
-	public void init() throws EvaContextException {
+	public void init() throws EvaContextException, InterruptedException {
 		RequestID.datacenterId = config.getClientId();
-		if (!StringUtil.isNullOrEmpty(config.getSingleHostAddress()) && StringUtil.isNullOrEmpty(config.getRegistryAddress())) {
+		if (!StringUtil.isNullOrEmpty(config.getSingleHostAddress())
+				&& StringUtil.isNullOrEmpty(config.getRegistryAddress())) {
 			clientProvider.setSingleHost(true);
 			clientProvider.setServerAddress(config.getSingleHostAddress());
-		} else if (StringUtil.isNullOrEmpty(config.getSingleHostAddress()) && !StringUtil.isNullOrEmpty(config.getRegistryAddress())) {
+		} else if (StringUtil.isNullOrEmpty(config.getSingleHostAddress())
+				&& !StringUtil.isNullOrEmpty(config.getRegistryAddress())) {
 			clientProvider.setSingleHost(false);
 			clientProvider.setServerAddress(config.getRegistryAddress());
 			clientProvider.setBalanceStrategy(BalanceStrategyFactory.getStrategy(config));
 			REGISTRY_DATA = Registry.get().getAllNodes();
 		} else {
-			throw new EvaContextException("In client configuration file, both single host and registry address are configured but expect one!");
+			throw new EvaContextException(
+					"In client configuration file, both single host and registry address are configured but expect one!");
 		}
 		clientProvider.setGlobalTimeoutMillSec(config.getGlobalTimoutMilliSec());
 		clientProvider.setCoreSizePerHost(config.getCoreSizePerHost());
 		clientProvider.setMaxSizePerHost(config.getMaxSizePerHost());
 		// if the client is connected to a single host
 		if (Objects.nonNull(config.getSingleHostAddress()) && Objects.isNull(config.getRegistryAddress())) {
-			// start a daemon for re-connect the host's netty server if the connection is disconnected.
+			// start a daemon for re-connect the host's netty server if the
+			// connection is disconnected.
 			Detective singleHostConnectionDetective = new Detective() {
 				@Override
-				public void connect() {
-					StatusEvent event = StatusEvent.getStartupEvent();
+				public void connect() throws InterruptedException {
 					try {
-						clientProvider.prepare();
-					} catch (Exception e) {
-						LOG.error("Cannot prepare channels, because of " + e.getMessage());
-						event.setStatus((short)1);
+						lock.lock();
+						StatusEvent event = StatusEvent.getStartupEvent();
+						Thread.sleep(30 * 1000L);
+						if (clientProvider.prepare()) {
+							event.setStatus((short) 0);
+							LOG.info("Prepared channels.");
+						} else {
+							LOG.error("Cannot prepare channels!");
+							event.setStatus((short) 1);
+						}
+						setChanged();
+						notifyObservers(event);
+					} finally {
+						lock.unlock();
 					}
-					setChanged();
-					notifyObservers(event);
 				}
+
 				@Override
 				public InetSocketAddress targetAddress() {
 					return NetUtil.getAddress(clientProvider.getServerAddress());
@@ -112,5 +124,5 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 	ClientConfig getConfig() {
 		return config;
 	}
-	
+
 }

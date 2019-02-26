@@ -37,7 +37,7 @@ public abstract class Detective implements Observer, Callable<Void> {
 			try {
 				lock.lock();
 				connect();
-				Thread.sleep(10 * 1000L);
+				Thread.sleep(30 * 1000L);
 				if (isConnected) {
 					condition.await();
 				}
@@ -61,7 +61,7 @@ public abstract class Detective implements Observer, Callable<Void> {
 					InetSocketAddress address = targetAddress();
 					try {
 						lock.lock();
-						Thread.sleep(15 * 1000L);
+						Thread.sleep(3 * 1000L);
 						boolean status = NetUtil.pingHost(address.getAddress().getHostAddress(), address.getPort());
 						String targetAddress = address.getAddress().getHostAddress()+ ":" + address.getPort();
 						if (status) {
@@ -74,7 +74,7 @@ public abstract class Detective implements Observer, Callable<Void> {
 							condition.signal();
 						}
 					} catch (Exception e) {
-						e.printStackTrace();
+						LOG.error(e.getMessage());
 					} finally {
 						lock.unlock();
 					}
@@ -87,10 +87,8 @@ public abstract class Detective implements Observer, Callable<Void> {
 		}
 	}
 	
-	public abstract void connect();
+	public abstract void connect() throws InterruptedException;
 	
 	public abstract InetSocketAddress targetAddress();
-	
-	
 	
 }

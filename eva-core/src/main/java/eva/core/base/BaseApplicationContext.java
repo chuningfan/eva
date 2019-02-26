@@ -95,7 +95,7 @@ public interface BaseApplicationContext {
 				}
 				if (timeout > 0L) {
 					Future<?> f = null;
-					ExecutorService exe = Executors.newCachedThreadPool(new DefaultThreadFactory(target.getClass()) {
+					ExecutorService exe = Executors.newSingleThreadExecutor(new DefaultThreadFactory(target.getClass()) {
 						@Override
 						public Thread newThread(Runnable r) {
 							final Thread thread = Executors.defaultThreadFactory().newThread(r);

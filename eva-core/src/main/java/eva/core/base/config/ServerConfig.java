@@ -28,6 +28,8 @@ public class ServerConfig {
 	private String registryAddress;
 	@Value("${eva.server.bean.inheritedInjection}")
 	private boolean inheritedInjection;
+	@Value("$(eva.server.timeout)")
+	private int serverTimeoutSec = -1;
 	
 	public String getServerId() {
 		return serverId;
@@ -108,5 +110,13 @@ public class ServerConfig {
 	public void setInheritedInjection(boolean inheritedInjection) {
 		this.inheritedInjection = inheritedInjection;
 	}
-	
+
+	public int getServerTimeoutSec() {
+		return serverTimeoutSec;
+	}
+
+	public void setServerTimeoutSec(int serverTimeoutSec) {
+		this.serverTimeoutSec = serverTimeoutSec;
+	}
+
 }

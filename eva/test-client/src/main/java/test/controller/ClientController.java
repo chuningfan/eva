@@ -14,7 +14,7 @@ public class ClientController {
 	private ClientService clientService;
 	
 	@GetMapping("c")
-	public void test() {
-		clientService.doTest();
+	public String test() {
+		return clientService.doTest();
 	}
 }

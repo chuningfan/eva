@@ -8,6 +8,6 @@ public interface BaseContext {
 
 	void removeBean(Class<?> beanClass);
 
-	void init() throws EvaContextException;
+	void init() throws EvaContextException, InterruptedException;
 
 }
