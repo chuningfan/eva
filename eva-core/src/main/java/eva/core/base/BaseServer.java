@@ -42,7 +42,7 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 		try {
 			host = InetAddress.getLocalHost().getHostAddress();
 		} catch (UnknownHostException e1) {
-			e1.printStackTrace();
+			LOG.warning(e1.getMessage());
 		}
 		status = Status.INITIALIZING;
 		daemon = Executors.newSingleThreadExecutor(new DefaultThreadFactory(getClass()) {
@@ -54,7 +54,6 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 				final Thread.UncaughtExceptionHandler uncaughtExceptionHandler = new UncaughtExceptionHandler() {
 					@Override
 					public void uncaughtException(Thread t, Throwable e) {
-						e.printStackTrace();
 						notifyObservers(StatusEvent.getFailedEvent(e));
 						LOG.info(e.getMessage());
 					}

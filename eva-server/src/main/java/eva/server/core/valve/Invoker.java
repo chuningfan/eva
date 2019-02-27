@@ -10,11 +10,11 @@ import eva.core.valve.Result;
 import eva.core.valve.Valve;
 import eva.server.core.async.Queue;
 import eva.server.core.async.Task;
+import eva.server.core.context.AncientContext;
 import eva.server.core.handler.ServerParamWrapper;
 import io.netty.channel.ChannelHandlerContext;
 
 public class Invoker extends Valve<ServerParamWrapper, Result> {
-
 
 	@Override
 	protected Result process0(ServerParamWrapper wrapper, Result result) throws Exception {
@@ -24,34 +24,39 @@ public class Invoker extends Valve<ServerParamWrapper, Result> {
 		if (Objects.isNull(interfaceClass)) {
 			return result.setMessage("Pipline > Invoke: No interface class was found!");
 		}
-		Object proxy = wrapper.getContext().getBean(interfaceClass);
+		Object proxy = AncientContext.CONTEXT.getBean(interfaceClass);
 		Response resp = new Response();
 		resp.setRequestId(packet.getRequestId());
 		if (!wrapper.getConfig().isAsyncProcessing()) {
-			if (Objects.nonNull(proxy)) {
-				Class<?>[] types = packet.getArgTypes();
-				Method method = null;
-				if (Objects.nonNull(types)) {
-					method = interfaceClass.getDeclaredMethod(packet.getMethodName(), types);
+			try {
+				if (Objects.nonNull(proxy)) {
+					Class<?>[] types = packet.getArgTypes();
+					Method method = null;
+					if (Objects.nonNull(types)) {
+						method = interfaceClass.getDeclaredMethod(packet.getMethodName(), types);
+					} else {
+						method = interfaceClass.getDeclaredMethod(packet.getMethodName());
+					}
+					Class<?> returnType = method.getReturnType();
+					if (!"void".equalsIgnoreCase(returnType.getName())) {
+						Object res = method.invoke(proxy, packet.getArgs());
+						resp.setResult(res);
+					} else {
+						method.invoke(proxy, packet.getArgs());
+						resp.setResult(ReturnVoid.getInstance());
+					}
+					resp.setStateCode(0);
+					resp.setMessage("ok");
 				} else {
-					method = interfaceClass.getDeclaredMethod(packet.getMethodName());
+					resp.setStateCode(1);
+					resp.setMessage("failed");
 				}
-				Class<?> returnType = method.getReturnType();
-				if (!"void".equalsIgnoreCase(returnType.getName())) {
-					Object res = method.invoke(proxy, packet.getArgs());
-					resp.setResult(res);
-				} else {
-					method.invoke(proxy, packet.getArgs());
-					resp.setResult(ReturnVoid.getInstance());
+				if (ctx.channel().isActive() && ctx.channel().isOpen()) {
+					ctx.writeAndFlush(resp);
 				}
-				resp.setStateCode(0);
-				resp.setMessage("ok");
-			} else {
-				resp.setStateCode(1);
-				resp.setMessage("failed");
+			} finally {
+				ctx.close();
 			}
-			if (ctx.channel().isActive() && ctx.channel().isOpen())
-				ctx.writeAndFlush(resp);
 		} else {
 			Task task = new Task(packet, ctx);
 			Queue.getInstance().addToQueue(task);

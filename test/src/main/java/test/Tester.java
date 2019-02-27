@@ -20,7 +20,7 @@ public class Tester {
 		config.setBossSize(2);
 		config.setWorkerSize(20);
 //		config.setAsyncProcessing(true);
-		config.setRegistryAddress("127.0.0.1:2181");
+//		config.setRegistryAddress("127.0.0.1:2181");
 		return new AncientContext(config);
 	}
 	

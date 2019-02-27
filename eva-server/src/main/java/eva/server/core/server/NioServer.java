@@ -66,9 +66,9 @@ public class NioServer extends BaseServer {
 		b.group(bossGroup, workerGroup);
 		b.channel(NioServerSocketChannel.class);
 		b.option(ChannelOption.SO_BACKLOG, 1024);
-		b.option(ChannelOption.SO_RCVBUF, 10*1024*1024);
-		b.option(ChannelOption.SO_SNDBUF, 1024*1024);
 		b.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+		b.childOption(ChannelOption.SO_RCVBUF, 10*1024*1024);
+		b.childOption(ChannelOption.SO_SNDBUF, 1024*1024);
 		b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
 		b.childOption(ChannelOption.TCP_NODELAY, true);
 		b.childOption(ChannelOption.SO_KEEPALIVE, true);
@@ -88,7 +88,7 @@ public class NioServer extends BaseServer {
 				}
 			});
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			LOG.warning(e.getMessage());
 			notifyObservers(StatusEvent.getFailedEvent(e));
 		} finally {
 			stopGracefully();

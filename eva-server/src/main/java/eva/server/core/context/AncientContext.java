@@ -10,6 +10,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Observable;
 import java.util.Set;
+import java.util.logging.Logger;
 
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
@@ -42,6 +43,7 @@ import net.sf.cglib.proxy.MethodProxy;
 
 public class AncientContext extends AbstractContext
 		implements BaseContext, BaseApplicationContext, ApplicationContextAware {
+	private static final Logger LOG = Logger.getLogger("AncientContext");
 	private static volatile Map<Class<?>, Object> EVA_BEANS = Maps.newConcurrentMap();
 	private static volatile Map<String, Object> DELAY_BEANS = Maps.newConcurrentMap();
 	public static NioServer SERVER = null;
@@ -88,7 +90,6 @@ public class AncientContext extends AbstractContext
 								Thread.sleep(500L);
 								LOG.info("Registering local server to service registry");
 							} catch (InterruptedException e) {
-								e.printStackTrace();
 								LOG.info("Delay register eva server to registry failed, skip.");
 							}
 							// TODO register local host to registry
@@ -105,8 +106,7 @@ public class AncientContext extends AbstractContext
 							try {
 								Registry.get().registerServerToRegistry(config.getRegistryAddress(), PROVIDER_METADATA);
 							} catch (IOException e1) {
-								e1.printStackTrace();
-								LOG.warning("Cannot register Eva to registry, RPC is unavailable.");
+								LOG.warning("Cannot register Eva to registry, RPC is unavailable. " + e1.getMessage());
 							}
 							String registryAddress = config.getRegistryAddress();
 							if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
@@ -328,7 +328,7 @@ public class AncientContext extends AbstractContext
 		try {
 			init();
 		} catch (EvaContextException e) {
-			e.printStackTrace();
+			LOG.warning(e.getMessage());
 		}
 	}
 

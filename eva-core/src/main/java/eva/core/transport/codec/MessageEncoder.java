@@ -1,6 +1,7 @@
 package eva.core.transport.codec;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
@@ -9,17 +10,8 @@ import io.netty.handler.codec.MessageToByteEncoder;
 
 @Sharable
 public class MessageEncoder extends MessageToByteEncoder<Object> {
-
-//	@Override
-//	protected void encode(ChannelHandlerContext arg0, Packet p, ByteBuf arg2) throws Exception {
-//		long requestId = p.getRequestId();
-//		Body body = p.getBody();
-//		byte[] jsonBytes = JSON.toJSONBytes(body);
-//		p.setBodySize(jsonBytes.length);
-//		arg2.writeLong(requestId);
-//		arg2.writeInt(p.getBodySize());
-//		arg2.writeBytes(jsonBytes);
-//	}
+	
+	private static final Logger LOG = Logger.getLogger("MessageEncoder");
 	
 	private MessageCodecUtil util = null;
 
@@ -32,7 +24,7 @@ public class MessageEncoder extends MessageToByteEncoder<Object> {
 		try {
 			util.encode(out, msg);
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOG.warning(e.getMessage());
 		}
 	}
 

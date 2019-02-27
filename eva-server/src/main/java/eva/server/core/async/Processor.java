@@ -41,15 +41,14 @@ public class Processor {
 							try {
 								flag = queue.offer(r, 500, TimeUnit.MILLISECONDS);
 							} catch (InterruptedException e) {
-								e.printStackTrace();
-								LOG.warning("Retrying offer task into queue failed. ");
+								LOG.warning("Retrying offer task into queue failed. " + e.getMessage());
 							}
 						}
 						if (!flag) {
 							try {
 								throw new EvaServerException("TPT rejected!");
 							} catch (EvaServerException e) {
-								e.printStackTrace();
+								LOG.warning(e.getMessage());
 							}
 						}
 					}
@@ -88,9 +87,12 @@ public class Processor {
 
 		@Override
 		public void run() {
+			ChannelHandlerContext ctx = null;
+			Task task = null;
 			for (;;) {
 				try {
-					Task task = Queue.getInstance().getTask();
+					task = Queue.getInstance().getTask();
+					ctx = task.getCtx();
 					Packet packet = task.getPacket();
 					Class<?> interfaceClass = packet.getInterfaceClass();
 					Object proxy = CONTEXT.getBean(interfaceClass);
@@ -115,13 +117,16 @@ public class Processor {
 						resp.setStateCode(1);
 						resp.setMessage("failed");
 					}
-					ChannelHandlerContext ctx = task.getCtx();
 					if (ctx.channel().isActive() && ctx.channel().isOpen()) {
 						ctx.writeAndFlush(resp);
 					}
 				} catch (InterruptedException | NoSuchMethodException | SecurityException | IllegalAccessException
 						| IllegalArgumentException | InvocationTargetException e) {
-					e.printStackTrace();
+					LOG.warning(e.getMessage());
+				} finally {
+					if (Objects.nonNull(ctx)) {
+						ctx.close();
+					}
 				}
 			}
 		}

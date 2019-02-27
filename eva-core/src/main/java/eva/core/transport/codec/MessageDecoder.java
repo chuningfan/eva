@@ -2,6 +2,7 @@ package eva.core.transport.codec;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Logger;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -9,19 +10,7 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 
 public class MessageDecoder extends ByteToMessageDecoder {
 
-//	@Override
-//	protected void decode(ChannelHandlerContext arg0, ByteBuf arg1, List<Object> arg2) throws Exception {
-//		Packet p = new Packet();
-//		long requestId = arg1.readLong();
-//		int bodySize = arg1.readInt();
-//		byte[] bytes = new byte[bodySize];
-//		arg1.readBytes(bytes);
-//		Body b = (Body) JSON.parse(bytes);
-//		p.setBodySize(bodySize);
-//		p.setBody(b);
-//		p.setRequestId(requestId);
-//		arg2.add(p);
-//	}
+	private static final Logger LOG = Logger.getLogger("MessageDecoder");
 	
 	final public static int MESSAGE_LENGTH = MessageCodecUtil.MESSAGE_LENGTH;
     private MessageCodecUtil util = null;
@@ -51,7 +40,7 @@ public class MessageDecoder extends ByteToMessageDecoder {
                 Object obj = util.decode(messageBody);
                 out.add(obj);
             } catch (IOException e) {
-            	e.printStackTrace();
+            	LOG.warning(e.getMessage());
             }
         }
     }

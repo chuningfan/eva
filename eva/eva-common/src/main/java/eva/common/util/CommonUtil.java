@@ -7,8 +7,11 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Objects;
+import java.util.logging.Logger;
 
 public class CommonUtil {
+	
+	private static final Logger LOG = Logger.getLogger("CommonUtil");
 	
 	@SuppressWarnings("unchecked")
 	public static final <T> T deepCopy(T target) {
@@ -24,14 +27,14 @@ public class CommonUtil {
 			ois = new ObjectInputStream(bais);
 			return (T) ois.readObject();
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOG.warning(e.getMessage());
 		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
+			LOG.warning(e.getMessage());
 		} finally {
 			try {
 				closeStreams(oos, baos, ois, bais);
 			} catch (IOException e) {
-				e.printStackTrace();
+				LOG.warning(e.getMessage());
 			}
 		}
 		return null;

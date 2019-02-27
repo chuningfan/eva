@@ -1,14 +1,10 @@
 package eva.server.core.handler;
 
-import org.springframework.context.ApplicationContext;
-
 import eva.core.base.config.ServerConfig;
 import eva.core.transport.Packet;
 import io.netty.channel.ChannelHandlerContext;
 
 public class ServerParamWrapper {
-	
-	private ApplicationContext context;
 	
 	private ServerConfig config;
 	
@@ -16,20 +12,11 @@ public class ServerParamWrapper {
 	
 	private ChannelHandlerContext channelContext;
 
-	public ServerParamWrapper(ApplicationContext context, ServerConfig config, Packet packet,
+	public ServerParamWrapper(ServerConfig config, Packet packet,
 			ChannelHandlerContext channelContext) {
-		this.context = context;
 		this.config = config;
 		this.packet = packet;
 		this.channelContext = channelContext;
-	}
-
-	public ApplicationContext getContext() {
-		return context;
-	}
-
-	public void setContext(ApplicationContext context) {
-		this.context = context;
 	}
 
 	public ServerConfig getConfig() {

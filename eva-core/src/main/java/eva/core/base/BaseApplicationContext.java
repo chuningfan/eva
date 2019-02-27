@@ -12,6 +12,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
 
 import com.esotericsoftware.minlog.Log;
 import com.google.common.collect.Maps;
@@ -29,6 +30,8 @@ public interface BaseApplicationContext {
 	
 	public static abstract class BaseProxy {
 
+		private static final Logger LOG = Logger.getLogger("BaseApplicationContext");
+		
 		protected Object target;
 
 		protected Class<?> interfaceClass;
@@ -112,7 +115,7 @@ public interface BaseApplicationContext {
 										method.invoke(target, args);
 									} catch (IllegalAccessException | IllegalArgumentException
 											| InvocationTargetException e) {
-										e.printStackTrace();
+										LOG.warning(e.getMessage());
 										isFailed.set(true);
 									}
 								});
@@ -135,7 +138,7 @@ public interface BaseApplicationContext {
 							try {
 								method.invoke(target, args);
 							} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-								e.printStackTrace();
+								LOG.warning(e.getMessage());
 								isFailed.set(true);
 							}
 						});
@@ -156,7 +159,7 @@ public interface BaseApplicationContext {
 							try {
 								result = method.invoke(target, args);
 							} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-								e.printStackTrace();
+								LOG.warning(e.getMessage());
 								isFailed.set(true);
 							} finally {
 								uniqueSem.release();
@@ -166,7 +169,7 @@ public interface BaseApplicationContext {
 						try {
 							result = method.invoke(target, args);
 						} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-							e.printStackTrace();
+							LOG.warning(e.getMessage());
 							isFailed.set(true);
 						}
 					}
@@ -175,7 +178,7 @@ public interface BaseApplicationContext {
 				try {
 					result = method.invoke(target, args);
 				} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-					e.printStackTrace();
+					LOG.warning(e.getMessage());
 					isFailed.set(true);
 				}
 			}
@@ -204,7 +207,7 @@ public interface BaseApplicationContext {
 				res = fallbackMethod.invoke(target, args);
 			} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException
 					| InvocationTargetException e) {
-				e.printStackTrace();
+				LOG.warning(e.getMessage());
 				throw new EvaAPIException(e.getMessage());
 			}
 			if ("void".equalsIgnoreCase(method.getReturnType().getName())) {
