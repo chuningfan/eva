@@ -8,16 +8,14 @@ import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
 import eva.common.global.StatusEvent;
 import eva.common.util.NetUtil;
 
 public abstract class Detective implements Observer, Callable<Void> {
 
-	private static final Logger LOG = LoggerFactory.getLogger(Detective.class);
+	private static final Logger LOG = Logger.getLogger("Detective");
 	
 	private ReentrantLock lock = new ReentrantLock();
 	
@@ -65,16 +63,16 @@ public abstract class Detective implements Observer, Callable<Void> {
 						boolean status = NetUtil.pingHost(address.getAddress().getHostAddress(), address.getPort());
 						String targetAddress = address.getAddress().getHostAddress()+ ":" + address.getPort();
 						if (status) {
-							LOG.trace("Heart beat keeper: Reached to " + targetAddress);
+							LOG.info("Heart beat keeper: Reached to " + targetAddress);
 						} else {
-							LOG.warn("Heart beat keeper: Cannot reach to " + targetAddress);
+							LOG.warning("Heart beat keeper: Cannot reach to " + targetAddress);
 						}
 						if (!status) {
 							isConnected = false;
 							condition.signal();
 						}
 					} catch (Exception e) {
-						LOG.error(e.getMessage());
+						LOG.info(e.getMessage());
 					} finally {
 						lock.unlock();
 					}

@@ -12,9 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
 import eva.common.global.StatusEvent;
 import eva.core.base.config.ServerConfig;
@@ -24,7 +22,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 
 public abstract class BaseServer extends Observable implements Future<Boolean> {
 
-	private static final Logger LOG = LoggerFactory.getLogger(BaseServer.class);
+	private static final Logger LOG = Logger.getLogger("BaseServer");
 
 	private final ExecutorService daemon;
 
@@ -58,7 +56,7 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 					public void uncaughtException(Thread t, Throwable e) {
 						e.printStackTrace();
 						notifyObservers(StatusEvent.getFailedEvent(e));
-						LOG.error(e.getMessage());
+						LOG.info(e.getMessage());
 					}
 				};
 				thread.setUncaughtExceptionHandler(uncaughtExceptionHandler);
@@ -79,7 +77,7 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 				if (serverStatus.compareAndSet(true, false)) {
 					status = Status.STOPPED;
 					daemon.shutdownNow();
-					LOG.error("Eva startup failed: " + event.getExc().getMessage());
+					LOG.info("Eva startup failed: " + event.getExc().getMessage());
 				}
 			}
 
@@ -88,7 +86,7 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 				if (serverStatus.compareAndSet(true, false)) {
 					status = Status.STOPPED;
 					daemon.shutdown();
-					LOG.error("Eva shutted down");
+					LOG.info("Eva shutted down");
 				}
 			}
 		};

@@ -11,6 +11,12 @@
   		<groupId>eva</groupId>
     	<artifactId>eva-core</artifactId>
     	<version>0.0.1-SNAPSHOT</version>
+    	<exclusions>
+    		<exclusion>
+    			<groupId>org.slf4j</groupId>
+    			<artifactId>slf4j-api</artifactId>
+    		</exclusion>
+    	</exclusions>
   	</dependency>
   </dependencies>
 </project>

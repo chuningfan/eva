@@ -1,9 +1,7 @@
 package eva.server.core.server;
 
 import java.util.concurrent.TimeUnit;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.logging.Logger;
 
 import eva.common.global.ProviderMetadata;
 import eva.common.global.StatusEvent;
@@ -36,7 +34,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 
 public class NioServer extends BaseServer {
 
-	private static final Logger LOG = LoggerFactory.getLogger(NioServer.class);
+	private static final Logger LOG = Logger.getLogger("NioServer");
 
 	private EventLoopGroup bossGroup;
 

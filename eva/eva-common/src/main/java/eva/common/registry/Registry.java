@@ -1,12 +1,14 @@
 package eva.common.registry;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Observable;
 import java.util.Set;
 
 import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooKeeper;
@@ -16,7 +18,6 @@ import com.google.common.collect.Sets;
 
 import eva.common.global.ProviderMetadata;
 import eva.common.global.StatusEvent;
-import eva.common.util.NetUtil;
 
 public class Registry extends Observable implements Watcher {
 	
@@ -33,21 +34,21 @@ public class Registry extends Observable implements Watcher {
 	}
 	
 	public final void registerServerToRegistry(String registryAddress, ProviderMetadata providerMetadata) throws IOException {
-		ZooKeeper zk = new ZooKeeper(NetUtil.getHost(registryAddress), NetUtil.getPort(registryAddress), this);
+		ZooKeeper zk = new ZooKeeper(registryAddress, 5000, this);
 		StatusEvent event = null;
 		try {
-			String addr = providerMetadata.getHost() + ":" + providerMetadata.getPort();
-			Set<String> set = REGISTRY_DATA.get(addr);
-			if (Objects.isNull(set)) {
-				set = Sets.newHashSet();
-			}
 			String path = null;
+			syncData(zk);
 			for (String serviceName: providerMetadata.getServices()) {
 				path = ROOT + "/" + serviceName;
-				path = zk.create(path, addr.getBytes(), null, CreateMode.EPHEMERAL);
-				set.add(path);
+				path = zk.create(path, registryAddress.getBytes(), null, CreateMode.EPHEMERAL);
+				Set<String> addressSet = REGISTRY_DATA.get(serviceName);
+				if (Objects.isNull(addressSet)) {
+					addressSet = Sets.newHashSet();
+					REGISTRY_DATA.put(serviceName, addressSet);
+				}
+				addressSet.add(registryAddress);
 			}
-			REGISTRY_DATA.put(addr, set);
 			event = StatusEvent.getStartupEvent();
 		} catch (Exception e) {
 			event = StatusEvent.getFailedEvent(e);
@@ -56,6 +57,25 @@ public class Registry extends Observable implements Watcher {
 		notifyObservers(event);
 	}
 	
+	private void syncData(ZooKeeper zk) throws KeeperException, InterruptedException {
+		List<String> services = zk.getChildren(ROOT, true);
+		if (Objects.nonNull(services) && !services.isEmpty()) {
+			for (String serviceName: services) {
+				List<String> addressList = zk.getChildren(serviceName, true);
+				Set<String> addressSet = REGISTRY_DATA.get(serviceName);
+				if (Objects.isNull(addressSet)) {
+					addressSet = Sets.newHashSet();
+					REGISTRY_DATA.put(serviceName, addressSet);
+				}
+				if (Objects.nonNull(addressList) && !addressList.isEmpty()) {
+					for (String addr: addressList) {
+						addressSet.add(addr);
+					}
+				}
+			}
+		}
+	}
+
 	@Override
 	public void process(WatchedEvent event) {
 		switch (event.getState()) {

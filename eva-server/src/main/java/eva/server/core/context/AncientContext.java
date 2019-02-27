@@ -89,7 +89,7 @@ public class AncientContext extends AbstractContext
 								LOG.info("Registering local server to service registry");
 							} catch (InterruptedException e) {
 								e.printStackTrace();
-								LOG.warn("Delay register eva server to registry failed, skip.");
+								LOG.info("Delay register eva server to registry failed, skip.");
 							}
 							// TODO register local host to registry
 							Registry.get().addObserver(new StatusListener() {
@@ -99,18 +99,18 @@ public class AncientContext extends AbstractContext
 								}
 								@Override
 								public void onFailure(Observable source, StatusEvent event) {
-									LOG.warn("Cannot register Eva to registry, RPC is unavailable.");
+									LOG.info("Cannot register Eva to registry, RPC is unavailable.");
 								}
 							});
 							try {
 								Registry.get().registerServerToRegistry(config.getRegistryAddress(), PROVIDER_METADATA);
 							} catch (IOException e1) {
 								e1.printStackTrace();
-								LOG.warn("Cannot register Eva to registry, RPC is unavailable.");
+								LOG.warning("Cannot register Eva to registry, RPC is unavailable.");
 							}
 							String registryAddress = config.getRegistryAddress();
 							if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
-								LOG.warn("No registry address is provided, eva is cannot provide RPC service.");
+								LOG.info("No registry address is provided, eva is cannot provide RPC service.");
 							} else {
 								Registry.get().addObserver(new StatusListener() {
 									@Override
@@ -121,7 +121,7 @@ public class AncientContext extends AbstractContext
 									@Override
 									public void onFailure(Observable source, StatusEvent event) {
 										Throwable e = event.getExc();
-										LOG.error("Failed to register provider: " + e.getMessage());
+										LOG.info("Failed to register provider: " + e.getMessage());
 									}
 								});
 							}
@@ -129,12 +129,12 @@ public class AncientContext extends AbstractContext
 
 						@Override
 						public void onFailure(Observable source, StatusEvent event) {
-							LOG.warn("Eva encountered an error, cannot provide RPC service any more.");
+							LOG.warning("Eva encountered an error, cannot provide RPC service any more.");
 						}
 
 						@Override
 						public void onClose(Observable source, StatusEvent event) {
-							LOG.warn("Eva is shutted down, cannot provide RPC service any more.");
+							LOG.warning("Eva is shutted down, cannot provide RPC service any more.");
 						}
 					});
 					if (needToRegister) {

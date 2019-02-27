@@ -4,12 +4,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class NetUtil {
 	
-	private static final Logger LOG = LoggerFactory.getLogger(NetUtil.class);
 	
 	public static final String getAddress(InetSocketAddress addr) {
 		return addr.getAddress().getHostAddress() + ":" + addr.getPort();
@@ -40,12 +36,12 @@ public class NetUtil {
 			connect.connect(endpointSocketAddr,3000);
 			isReachable = connect.isConnected();
 		} catch (Exception e) {
-			LOG.error(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
+			throw new Exception(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
 		} finally {
 			try {
 				connect.close();
 			} catch (IOException e) {
-				LOG.error(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
+				throw new Exception(e.getMessage() + ", ip = " + ipAddress + ", port = " +port);
 			}
 		}
 		return isReachable;
