@@ -21,7 +21,7 @@ import eva.common.global.StatusEvent;
 
 public class Registry extends Observable implements Watcher {
 	
-	private static final String ROOT = "/EVA-20170106";
+	private static final String ROOT = "/2017EVA0106";
 	
 	public static volatile Map<String, Set<String>> REGISTRY_DATA = Maps.newConcurrentMap();
 	
