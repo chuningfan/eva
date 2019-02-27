@@ -90,7 +90,7 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 					try {
 						lock.lock();
 						StatusEvent event = StatusEvent.getStartupEvent();
-						Thread.sleep(30 * 1000L);
+//						Thread.sleep(30 * 1000L);
 						if (clientProvider.prepare()) {
 							event.setStatus((short) 0);
 							LOG.info("Prepared channels.");

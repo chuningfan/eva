@@ -28,6 +28,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
@@ -81,7 +82,7 @@ public class NioServer extends BaseServer {
 		try {
 			f = b.bind(config.getPort()).sync();
 			notifyObservers(StatusEvent.getStartupEvent());
-			LOG.info("******** Eve is ready! Hello, World! ********");
+			LOG.info("******** Eva is ready! Hello, World! ********");
 			f.channel().closeFuture().sync().addListener((GenericFutureListener<? extends Future<? super Void>>) new FutureListener<ChannelFuture>() {
 				@Override
 				public void operationComplete(Future<ChannelFuture> paramF) throws Exception {
@@ -111,6 +112,7 @@ public class NioServer extends BaseServer {
 		protected void initChannel(SocketChannel ch) throws Exception {
 			ChannelPipeline pipeline = ch.pipeline();
 			pipeline.addLast(new LoggingHandler(LogLevel.DEBUG));
+			pipeline.addLast(new IdleStateHandler(15, 0, 0, TimeUnit.SECONDS));
 			pipeline.addLast("decoder", getDecoder());
 	        pipeline.addLast("encoder", getEncoder());
 	        pipeline.addLast("handler", new NioServerHandler(config));

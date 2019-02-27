@@ -1,6 +1,7 @@
 package eva.client.core.dto;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 import io.netty.channel.Channel;
 
@@ -8,12 +9,15 @@ public class ClientWrapper implements Serializable {
 	
 	private static final long serialVersionUID = -8823434525171210732L;
 
+	private UUID channelId;
+	
 	private Channel channel;
 	
 	private String targetAddress;
 
-	public ClientWrapper(Channel channel, String targetAddress) {
+	public ClientWrapper(Channel channel, UUID channelId, String targetAddress) {
 		this.channel = channel;
+		this.channelId = channelId;
 		this.targetAddress = targetAddress;
 	}
 
@@ -31,6 +35,14 @@ public class ClientWrapper implements Serializable {
 
 	public void setTargetAddress(String targetAddress) {
 		this.targetAddress = targetAddress;
+	}
+
+	public UUID getChannelId() {
+		return channelId;
+	}
+
+	public void setChannelId(UUID channelId) {
+		this.channelId = channelId;
 	}
 	
 }

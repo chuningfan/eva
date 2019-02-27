@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -38,6 +39,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.AttributeKey;
 
 class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
@@ -49,8 +52,11 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		private static final ClientProvider INSTANCE = new ClientProvider();
 	}
 
+	static final AttributeKey<String> CHANNEL_ADDR_KEY = AttributeKey.valueOf("targetAddress");
+	static final AttributeKey<UUID> CHANNEL_ID = AttributeKey.valueOf("channelId");
+	
 	// key: address, value: channels
-	private volatile Map<String, LinkedBlockingQueue<ClientWrapper>> POOL = Maps.newConcurrentMap();
+	volatile Map<String, LinkedBlockingQueue<ClientWrapper>> POOL = Maps.newConcurrentMap();
 
 	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
 	
@@ -124,9 +130,9 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 			ClientWrapper wrapper = null;
 			for (int i = 0; i < coreSizePerHost; i++) {
 				try {
-					wrapper = create(NetUtil.getAddress(addr));
+					wrapper = createIfNecessary(NetUtil.getAddress(addr));
 					if (Objects.nonNull(wrapper)) {
-						POOL.get(addr).put(wrapper);
+						POOL.get(addr).offer(wrapper);
 					} else {
 						break;
 					}
@@ -165,6 +171,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 						@Override
 						protected void initChannel(SocketChannel ch) throws Exception {
 							ChannelPipeline pipeline = ch.pipeline();
+							pipeline.addLast(new IdleStateHandler(0, 15, 0));
 							pipeline.addLast(new KryoEncoder(kryoCodecUtil));
 							pipeline.addLast(new KryoDecoder(kryoCodecUtil));
 							pipeline.addLast(new EvaClientHandler());
@@ -177,7 +184,10 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		Channel channel = null;
 		try {
 			channel = channelFuture.sync().channel();
-			wrap = new ClientWrapper(channel, address.getAddress().getHostAddress() + ":" + address.getPort());
+			channel.attr(CHANNEL_ADDR_KEY).set(address.getAddress().getHostAddress() + ":" + address.getPort());
+			UUID channelId = UUID.randomUUID();
+			channel.attr(CHANNEL_ID).set(channelId);
+			wrap = new ClientWrapper(channel, channelId, address.getAddress().getHostAddress() + ":" + address.getPort());
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -259,21 +269,18 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 			address = getChannelAddress(serviceAddresses);
 		}
 		LinkedBlockingQueue<ClientWrapper> llist = POOL.get(address);
-		int retryTime = 0;
 		if (Objects.isNull(llist)) {
 			createAddressPool(address);
 		}
 		ClientWrapper wrap = llist.poll(300, TimeUnit.MILLISECONDS);
-		while (Objects.isNull(wrap)
-				&& retryTime++ < 3
-				) {
+		int retryTime = 0;
+		while (Objects.isNull(wrap) && retryTime++ < 3) {
 			wrap = llist.poll(300, TimeUnit.MILLISECONDS);
 		}
-		if (Objects.isNull(wrap) && llist.size() < maxSizePerHost) {
-			return create(NetUtil.getAddress(address));
-		} else {
-			while (Objects.isNull(wrap)) {
-				wrap = llist.poll(300, TimeUnit.MILLISECONDS);
+		if (Objects.isNull(wrap)) {
+			wrap = createIfNecessary(NetUtil.getAddress(address));
+			if (Objects.isNull(wrap)) {
+				throw new Exception("Cannot get connection resource for service" + serviceClass.getSimpleName());
 			}
 		}
 		return wrap;
@@ -295,14 +302,16 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		}
 	}
 
-	void createIfNecessary(InetSocketAddress address) throws Exception {
+	ClientWrapper createIfNecessary(InetSocketAddress address) throws Exception {
 		LinkedBlockingQueue<ClientWrapper> channels = POOL.get(NetUtil.getAddress(address));
-		if (channels.size() < coreSizePerHost) {
+		if (channels.size() < maxSizePerHost) {
 			ClientWrapper wrapper = create(address);
 			if (Objects.nonNull(wrapper)) {
 				channels.offer(wrapper);
+				return wrapper;
 			}
 		}
+		return null;
 	}
 	
 }

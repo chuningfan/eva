@@ -25,6 +25,7 @@ import eva.core.annotation.Fallback;
 import eva.core.base.AbstractContext;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
+import io.netty.channel.Channel;
 
 public class Eva extends AbstractContext {
 
@@ -67,7 +68,16 @@ public class Eva extends AbstractContext {
 						fallbackObj = config.getFallback();
 					}
 					try {
-						wrapper.getChannel().writeAndFlush(p);
+						Channel channel = wrapper.getChannel();
+						if (channel.isActive() && channel.isOpen() && channel.isWritable()) {
+						} else {
+							wrapper = ClientProvider.get().createIfNecessary(NetUtil.getAddress(wrapper.getTargetAddress()));
+							if (Objects.isNull(wrapper)) {
+								wrapper = ClientProvider.get().getSource(interfaceClass);
+							}
+							channel = wrapper.getChannel();
+						}
+						channel.writeAndFlush(p);
 						System.out.println("Invoke ID=" + requestId + "<<<<<<<<<<<<<<<<<<<<<");
 						Response response = f.get(timeout, TimeUnit.MILLISECONDS);
 						return response.getResult();
