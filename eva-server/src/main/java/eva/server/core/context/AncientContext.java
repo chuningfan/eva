@@ -22,17 +22,18 @@ import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.ConfigurableApplicationContext;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
+import eva.common.global.ProviderMetadata;
+import eva.common.global.StatusEvent;
+import eva.common.registry.Registry;
 import eva.core.annotation.EvaService;
 import eva.core.base.AbstractContext;
 import eva.core.base.BaseApplicationContext;
 import eva.core.base.BaseContext;
 import eva.core.base.config.ServerConfig;
-import eva.core.dto.ProviderMetadata;
-import eva.core.dto.StatusEvent;
 import eva.core.exception.EvaContextException;
 import eva.core.listener.StatusListener;
-import eva.core.registry.Registry;
 import eva.server.core.server.NioServer;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
@@ -68,6 +69,7 @@ public class AncientContext extends AbstractContext
 	public void init() throws EvaContextException {
 		if (Objects.isNull(SERVER)) {
 			synchronized (this) {
+				boolean needToRegister = Objects.nonNull(config.getRegistryAddress()) && !config.getRegistryAddress().trim().isEmpty();
 				if (Objects.isNull(SERVER)) {
 					SERVER = new NioServer(config, PROVIDER_METADATA);
 				}
@@ -77,8 +79,8 @@ public class AncientContext extends AbstractContext
 					if (DELAY_BEANS.size() > 0) {
 						replaceSpringBean(DELAY_BEANS, false);
 					}
-					NioServer server = new NioServer(config, PROVIDER_METADATA);
-					server.addObserver(new StatusListener() {
+//					NioServer server = new NioServer(config, PROVIDER_METADATA);
+					SERVER.addObserver(new StatusListener() {
 						@Override
 						public void onSuccess(Observable source, StatusEvent event) {
 							try {
@@ -89,6 +91,17 @@ public class AncientContext extends AbstractContext
 								LOG.warn("Delay register eva server to registry failed, skip.");
 							}
 							// TODO register local host to registry
+							Registry.get().addObserver(new StatusListener() {
+								@Override
+								public void onSuccess(Observable source, StatusEvent event) {
+									LOG.info("Eva has beean registered on the registry");
+								}
+								@Override
+								public void onFailure(Observable source, StatusEvent event) {
+									LOG.warn("Cannot register Eva to registry, RPC is unavailable.");
+								}
+							});
+							Registry.get().registerServerToRegistry(config.getRegistryAddress(), PROVIDER_METADATA);
 							String registryAddress = config.getRegistryAddress();
 							if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
 								LOG.warn("No registry address is provided, eva is cannot provide RPC service.");
@@ -118,7 +131,17 @@ public class AncientContext extends AbstractContext
 							LOG.warn("Eva is shutted down, cannot provide RPC service any more.");
 						}
 					});
-					server.start();
+					if (needToRegister) {
+						if (Objects.nonNull(EVA_BEANS) && !EVA_BEANS.isEmpty()) {
+							Set<String> serviceNames = Sets.newHashSet();
+							Set<Class<?>> set = EVA_BEANS.keySet();
+							set.stream().forEach(c -> {
+								serviceNames.add(c.getName());
+							});
+							PROVIDER_METADATA.setServices(serviceNames);
+						}
+					}
+					SERVER.start();
 				}
 			}
 		}

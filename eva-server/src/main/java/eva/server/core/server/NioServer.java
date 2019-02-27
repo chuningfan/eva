@@ -5,10 +5,10 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import eva.common.global.ProviderMetadata;
+import eva.common.global.StatusEvent;
 import eva.core.base.BaseServer;
 import eva.core.base.config.ServerConfig;
-import eva.core.dto.ProviderMetadata;
-import eva.core.dto.StatusEvent;
 import eva.core.transport.codec.kryo.KryoCodecUtil;
 import eva.core.transport.codec.kryo.KryoDecoder;
 import eva.core.transport.codec.kryo.KryoEncoder;
@@ -50,7 +50,7 @@ public class NioServer extends BaseServer {
 		super(config);
 		providerMetadata.setHost(host);
 		providerMetadata.setPort(config.getPort());
-		providerMetadata.setProviderName(config.getServerId());
+		providerMetadata.setServerId(config.getServerId());
 	}
 	
 	@SuppressWarnings("unchecked")

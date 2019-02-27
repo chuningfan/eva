@@ -6,7 +6,7 @@ import java.util.Observer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eva.core.dto.StatusEvent;
+import eva.common.global.StatusEvent;
 
 public interface StatusListener extends Observer {
 

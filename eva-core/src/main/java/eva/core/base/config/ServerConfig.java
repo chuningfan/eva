@@ -10,8 +10,6 @@ public class ServerConfig {
 	
 	@Value("${eva.server.id}")
 	private String serverId = UUID.randomUUID().toString();
-//	@Value("${eva.provider.name}")
-//	private String providerName;
 	@Value("${eva.server.port}")
 	private int port = 8763;
 	@Value("${eva.server.connector.size}")

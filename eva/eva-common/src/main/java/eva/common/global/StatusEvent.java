@@ -1,4 +1,4 @@
-package eva.core.dto;
+package eva.common.global;
 
 public class StatusEvent {
 	

@@ -13,14 +13,14 @@ import org.slf4j.LoggerFactory;
 
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.common.global.RequestID;
+import eva.common.global.StatusEvent;
+import eva.common.registry.Registry;
 import eva.common.util.NetUtil;
 import eva.core.base.AbstractContext;
 import eva.core.base.BaseContext;
 import eva.core.base.Detective;
 import eva.core.base.config.ClientConfig;
-import eva.core.dto.StatusEvent;
 import eva.core.exception.EvaContextException;
-import eva.core.registry.Registry;
 import io.netty.util.internal.StringUtil;
 
 public class EvaClientContext extends AbstractContext implements BaseContext {
