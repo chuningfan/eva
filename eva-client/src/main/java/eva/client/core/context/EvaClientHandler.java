@@ -1,7 +1,6 @@
 package eva.client.core.context;
 
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import com.esotericsoftware.minlog.Log;
@@ -48,7 +47,7 @@ public class EvaClientHandler extends SimpleChannelInboundHandler<Response> {
 					if ((times + 1) > 2) {
 						ctx.channel().flush().close();
 						String targetAddress = ctx.channel().attr(ClientProvider.CHANNEL_ADDR_KEY).get();
-						UUID channelId = ctx.channel().attr(ClientProvider.CHANNEL_ID).get();
+//						UUID channelId = ctx.channel().attr(ClientProvider.CHANNEL_ID).get();
 						LinkedBlockingQueue<ClientWrapper> list = ClientProvider.get().POOL.get(targetAddress);
 						ClientWrapper wrapper = list.stream().anyMatch(cw -> cw.getChannel() == ctx.channel()) ? list.stream().filter(cw -> cw.getChannel() == ctx.channel()).findFirst().get() : null;
 						if (Objects.isNull(wrapper)) {

@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.esotericsoftware.minlog.Log;
 import com.google.common.collect.Maps;
 
 import eva.core.annotation.EvaEndpoint;
@@ -125,6 +126,9 @@ public interface BaseApplicationContext {
 								uniqueSem.release();
 								exe.shutdown();
 							}
+						} else {
+							Log.info("Access is limited!");
+							isFailed.set(true);
 						}
 					} else {
 						f = exe.submit(() -> {

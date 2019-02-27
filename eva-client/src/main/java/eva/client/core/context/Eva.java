@@ -14,11 +14,11 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Maps;
 
 import eva.client.core.dto.ClientWrapper;
 import eva.client.core.dto.SpecifiedConfig;
+import eva.client.core.spi.CacheLoader;
 import eva.common.global.RequestID;
 import eva.common.util.NetUtil;
 import eva.core.annotation.Fallback;
@@ -29,8 +29,7 @@ import io.netty.channel.Channel;
 
 public class Eva extends AbstractContext {
 
-	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheBuilder.newBuilder()
-			.expireAfterWrite(60 * 1000, TimeUnit.MILLISECONDS).maximumSize(8 * 1024).build();
+	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheLoader.getCache();
 
 	private static final Map<Class<?>, Object> PROXIES = Maps.newConcurrentMap();
 

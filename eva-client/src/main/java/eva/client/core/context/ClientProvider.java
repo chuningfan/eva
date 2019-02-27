@@ -280,7 +280,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		if (Objects.isNull(wrap)) {
 			wrap = createIfNecessary(NetUtil.getAddress(address));
 			if (Objects.isNull(wrap)) {
-				throw new Exception("Cannot get connection resource for service" + serviceClass.getSimpleName());
+				throw new Exception("Cannot get connection resource for service" + serviceClass.getSimpleName() + ", you may increase the number of connection to resolve.");
 			}
 		}
 		return wrap;
