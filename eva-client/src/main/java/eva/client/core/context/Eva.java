@@ -18,7 +18,7 @@ import com.google.common.collect.Maps;
 
 import eva.client.core.dto.ClientWrapper;
 import eva.client.core.dto.SpecifiedConfig;
-import eva.client.core.spi.CacheLoader;
+import eva.client.core.spi.CacheServiceProvider;
 import eva.common.global.RequestID;
 import eva.common.util.NetUtil;
 import eva.core.annotation.Fallback;
@@ -29,7 +29,8 @@ import io.netty.channel.Channel;
 
 public class Eva extends AbstractContext {
 
-	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheLoader.getCache();
+	@SuppressWarnings("unchecked")
+	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheServiceProvider.getCache();
 
 	private static final Map<Class<?>, Object> PROXIES = Maps.newConcurrentMap();
 
