@@ -1,5 +1,6 @@
 package eva.server.core.context;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -101,7 +102,12 @@ public class AncientContext extends AbstractContext
 									LOG.warn("Cannot register Eva to registry, RPC is unavailable.");
 								}
 							});
-							Registry.get().registerServerToRegistry(config.getRegistryAddress(), PROVIDER_METADATA);
+							try {
+								Registry.get().registerServerToRegistry(config.getRegistryAddress(), PROVIDER_METADATA);
+							} catch (IOException e1) {
+								e1.printStackTrace();
+								LOG.warn("Cannot register Eva to registry, RPC is unavailable.");
+							}
 							String registryAddress = config.getRegistryAddress();
 							if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
 								LOG.warn("No registry address is provided, eva is cannot provide RPC service.");

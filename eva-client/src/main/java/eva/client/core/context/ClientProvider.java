@@ -91,7 +91,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 	synchronized boolean prepare() throws InterruptedException{
 		clear();
 		if (!isSingleHost) {
-			INTERFACE_HOSTS = Registry.get().getAllNodes();
+			INTERFACE_HOSTS = Registry.REGISTRY_DATA;
 			if (Objects.nonNull(INTERFACE_HOSTS) && !INTERFACE_HOSTS.isEmpty()) {
 				Set<Entry<String, Set<String>>> interfaceHostSet = INTERFACE_HOSTS.entrySet();
 				Set<String> addresses = Sets.newHashSet();

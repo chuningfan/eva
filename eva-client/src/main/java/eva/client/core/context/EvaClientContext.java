@@ -27,8 +27,8 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 
 	private static final Logger LOG = LoggerFactory.getLogger(EvaClientContext.class);
 
-	// key: interface name, value addresses
-	static Map<String, Set<String>> REGISTRY_DATA;
+//	// key: interface name, value addresses
+//	public static Map<String, Set<String>> REGISTRY_DATA;
 
 	private final ClientConfig config;
 
@@ -72,7 +72,7 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 			clientProvider.setSingleHost(false);
 			clientProvider.setServerAddress(config.getRegistryAddress());
 			clientProvider.setBalanceStrategy(BalanceStrategyFactory.getStrategy(config));
-			REGISTRY_DATA = Registry.get().getAllNodes();
+//			REGISTRY_DATA = Registry.get().getAllNodes();
 		} else {
 			throw new EvaContextException(
 					"In client configuration file, both single host and registry address are configured but expect one!");
