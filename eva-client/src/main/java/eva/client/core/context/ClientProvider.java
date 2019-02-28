@@ -40,7 +40,6 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.util.AttributeKey;
 
 class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
@@ -174,7 +173,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 						@Override
 						protected void initChannel(SocketChannel ch) throws Exception {
 							ChannelPipeline pipeline = ch.pipeline();
-							pipeline.addLast(new IdleStateHandler(0, 15, 0));
+//							pipeline.addLast(new IdleStateHandler(0, 15, 0));
 							pipeline.addLast(new KryoEncoder(kryoCodecUtil));
 							pipeline.addLast(new KryoDecoder(kryoCodecUtil));
 							pipeline.addLast(new EvaClientHandler());

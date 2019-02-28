@@ -19,8 +19,9 @@ public class App {
 	public EvaClientContext evaClientContext() throws EvaContextException, InterruptedException {
 		ClientConfig config = new ClientConfig();
 		config.setClientId(1L);
-		config.setGlobalTimoutMilliSec(30000);
+		config.setGlobalTimoutMilliSec(3000);
 		config.setCoreSizePerHost(10);
+		config.setMaxSizePerHost(15);
 		config.setSingleHostAddress("127.0.0.1:8763");
 		return new EvaClientContext(config);
 	}

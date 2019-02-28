@@ -11,7 +11,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 import eva.common.global.StatusEvent;
@@ -34,8 +33,6 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 
 	private Future<?> future;
 
-	protected final ReentrantLock lock = new ReentrantLock();
-	
 	protected String host;
 
 	public BaseServer(ServerConfig config) {

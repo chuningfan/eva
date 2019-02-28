@@ -22,12 +22,11 @@ import eva.client.core.spi.CacheServiceProvider;
 import eva.common.global.RequestID;
 import eva.common.util.NetUtil;
 import eva.core.annotation.Fallback;
-import eva.core.base.AbstractContext;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
 import io.netty.channel.Channel;
 
-public class Eva extends AbstractContext {
+public class Eva {
 
 	@SuppressWarnings("unchecked")
 	private static final Cache<Long, ResponseFuture<Response>> TEMP_FUTURE = CacheServiceProvider.getCache();
@@ -43,7 +42,7 @@ public class Eva extends AbstractContext {
 		if (Objects.nonNull(PROXIES.get(interfaceClass))) {
 			return (T) PROXIES.get(interfaceClass);
 		} else {
-			T proxy = (T) Proxy.newProxyInstance(LOADER, new Class<?>[] { interfaceClass }, new InvocationHandler() {
+			T proxy = (T) Proxy.newProxyInstance(Eva.class.getClassLoader(), new Class<?>[] { interfaceClass }, new InvocationHandler() {
 				@Override
 				public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 					String methodName = method.getName();

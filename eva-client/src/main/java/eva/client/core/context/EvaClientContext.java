@@ -1,9 +1,8 @@
 package eva.client.core.context;
 
 import java.net.InetSocketAddress;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
+import java.util.Observable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -14,40 +13,36 @@ import org.slf4j.LoggerFactory;
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.common.global.RequestID;
 import eva.common.global.StatusEvent;
-import eva.common.registry.Registry;
 import eva.common.util.NetUtil;
-import eva.core.base.AbstractContext;
 import eva.core.base.BaseContext;
 import eva.core.base.Detective;
 import eva.core.base.config.ClientConfig;
 import eva.core.exception.EvaContextException;
 import io.netty.util.internal.StringUtil;
 
-public class EvaClientContext extends AbstractContext implements BaseContext {
+public class EvaClientContext extends Observable implements BaseContext<Void> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(EvaClientContext.class);
 
-//	// key: interface name, value addresses
-//	public static Map<String, Set<String>> REGISTRY_DATA;
-
 	private final ClientConfig config;
 
-	private final ClientProvider clientProvider = ClientProvider.get();
+	private final ClientProvider clientProvider;
 
 	private final ExecutorService daemon;
 
 	public EvaClientContext(ClientConfig config) throws EvaContextException, InterruptedException {
 		this.config = config;
+		clientProvider = ClientProvider.get();
 		daemon = Executors.newSingleThreadExecutor(new ThreadFactory() {
 			@Override
 			public Thread newThread(Runnable arg0) {
 				final Thread th = Executors.defaultThreadFactory().newThread(arg0);
 				th.setDaemon(true);
-				th.setContextClassLoader(LOADER);
+				th.setContextClassLoader(getClass().getClassLoader());
 				return th;
 			}
 		});
-		init();
+		init(null);
 	}
 
 	@Override
@@ -61,7 +56,7 @@ public class EvaClientContext extends AbstractContext implements BaseContext {
 	}
 
 	@Override
-	public void init() throws EvaContextException, InterruptedException {
+	public void init(Void nothing) throws EvaContextException, InterruptedException {
 		RequestID.datacenterId = config.getClientId();
 		if (!StringUtil.isNullOrEmpty(config.getSingleHostAddress())
 				&& StringUtil.isNullOrEmpty(config.getRegistryAddress())) {

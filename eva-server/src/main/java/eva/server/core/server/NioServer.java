@@ -1,6 +1,5 @@
 package eva.server.core.server;
 
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import eva.common.global.ProviderMetadata;
@@ -11,8 +10,8 @@ import eva.core.transport.codec.kryo.KryoCodecUtil;
 import eva.core.transport.codec.kryo.KryoDecoder;
 import eva.core.transport.codec.kryo.KryoEncoder;
 import eva.core.transport.codec.kryo.KryoPoolFactory;
-import eva.server.core.async.Processor;
 import eva.server.core.handler.NioServerHandler;
+import eva.server.core.valve.invoker.async.Processor;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -26,7 +25,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
@@ -74,7 +72,7 @@ public class NioServer extends BaseServer {
 		b.childOption(ChannelOption.SO_KEEPALIVE, true);
         b.childHandler(new ServerChannelInitializer());
         if (config.isAsyncProcessing()) {
-        	Processor.getInstance().init();
+        	Processor.getInstance().init(config);
         }
 		ChannelFuture f;
 		try {
@@ -110,7 +108,7 @@ public class NioServer extends BaseServer {
 		protected void initChannel(SocketChannel ch) throws Exception {
 			ChannelPipeline pipeline = ch.pipeline();
 			pipeline.addLast(new LoggingHandler(LogLevel.DEBUG));
-			pipeline.addLast(new IdleStateHandler(15, 0, 0, TimeUnit.SECONDS));
+//			pipeline.addLast(new IdleStateHandler(15, 0, 0, TimeUnit.SECONDS));
 			pipeline.addLast("decoder", getDecoder());
 	        pipeline.addLast("encoder", getEncoder());
 	        pipeline.addLast("handler", new NioServerHandler(config));

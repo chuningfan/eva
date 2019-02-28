@@ -17,8 +17,8 @@ public class Tester {
 	@Bean
 	public AncientContext ancientContext() throws Throwable {
 		ServerConfig config = new ServerConfig();
-		config.setBossSize(2);
-		config.setWorkerSize(20);
+		config.setBossSize(1);
+		config.setWorkerSize(Runtime.getRuntime().availableProcessors());
 //		config.setAsyncProcessing(true);
 //		config.setRegistryAddress("127.0.0.1:2181");
 		return new AncientContext(config);

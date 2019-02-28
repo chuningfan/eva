@@ -30,7 +30,6 @@ import eva.common.global.ProviderMetadata;
 import eva.common.global.StatusEvent;
 import eva.common.registry.Registry;
 import eva.core.annotation.EvaService;
-import eva.core.base.AbstractContext;
 import eva.core.base.BaseApplicationContext;
 import eva.core.base.BaseContext;
 import eva.core.base.config.ServerConfig;
@@ -41,16 +40,13 @@ import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
-public class AncientContext extends AbstractContext
-		implements BaseContext, BaseApplicationContext, ApplicationContextAware {
+public class AncientContext implements BaseContext<ConfigurableApplicationContext>, BaseApplicationContext, ApplicationContextAware {
 	private static final Logger LOG = Logger.getLogger("AncientContext");
-	private static volatile Map<Class<?>, Object> EVA_BEANS = Maps.newConcurrentMap();
-	private static volatile Map<String, Object> DELAY_BEANS = Maps.newConcurrentMap();
+	private volatile Map<Class<?>, Object> EVA_BEANS = Maps.newConcurrentMap();
+	private volatile Map<String, Object> DELAY_BEANS = Maps.newConcurrentMap();
 	public static NioServer SERVER = null;
-	public static ConfigurableApplicationContext CONTEXT = null;
-	private static DefaultListableBeanFactory BEAN_FACTORY = null;
 	private ServerConfig config;
-	private static ProviderMetadata PROVIDER_METADATA = new ProviderMetadata();
+	private ProviderMetadata PROVIDER_METADATA = new ProviderMetadata();
 
 	public AncientContext(ServerConfig config) throws Throwable {
 		this.config = config;
@@ -69,18 +65,22 @@ public class AncientContext extends AbstractContext
 	}
 
 	@Override
-	public void init() throws EvaContextException {
+	public void init(ConfigurableApplicationContext context) throws EvaContextException {
 		if (Objects.isNull(SERVER)) {
 			synchronized (this) {
+				if (Objects.isNull(config.getContext())) {
+					config.setContext(context);
+				}
+				DefaultListableBeanFactory beanFactory = (DefaultListableBeanFactory) context.getBeanFactory();
 				boolean needToRegister = Objects.nonNull(config.getRegistryAddress()) && !config.getRegistryAddress().trim().isEmpty();
 				if (Objects.isNull(SERVER)) {
 					SERVER = new NioServer(config, PROVIDER_METADATA);
 				}
-				if (Objects.nonNull(BEAN_FACTORY)) {
-					Map<String, Object> evaBeans = BEAN_FACTORY.getBeansWithAnnotation(EvaService.class);
-					replaceSpringBean(evaBeans, config.isInheritedInjection());
+				if (Objects.nonNull(beanFactory)) {
+					Map<String, Object> evaBeans = beanFactory.getBeansWithAnnotation(EvaService.class);
+					replaceSpringBean(evaBeans, config.isInheritedInjection(), context);
 					if (DELAY_BEANS.size() > 0) {
-						replaceSpringBean(DELAY_BEANS, false);
+						replaceSpringBean(DELAY_BEANS, false, context);
 					}
 //					NioServer server = new NioServer(config, PROVIDER_METADATA);
 					SERVER.addObserver(new StatusListener() {
@@ -154,10 +154,10 @@ public class AncientContext extends AbstractContext
 
 	}
 
-	private void replaceSpringBean(Map<String, Object> beanMap, boolean processDelayBeans) throws EvaContextException {
+	private void replaceSpringBean(Map<String, Object> beanMap, boolean processDelayBeans, ConfigurableApplicationContext context) throws EvaContextException {
 		boolean success = true;
 		Exception exc = null;
-		DefaultListableBeanFactory bf = (DefaultListableBeanFactory) CONTEXT.getBeanFactory();
+		DefaultListableBeanFactory bf = (DefaultListableBeanFactory) context.getBeanFactory();
 		if (Objects.nonNull(beanMap) && beanMap.size() > 0) {
 			Set<Entry<String, Object>> entries = beanMap.entrySet();
 			EvaService service = null;
@@ -165,14 +165,14 @@ public class AncientContext extends AbstractContext
 			for (Entry<String, Object> entry : entries) {
 				Object bean = entry.getValue();
 				String beanName = entry.getKey();
-				if (processDelayBeans && needDelay(beanName, bean)) {
+				if (processDelayBeans && needDelay(beanName, bean, context)) {
 					continue;
 				}
 				service = bean.getClass().getAnnotation(EvaService.class);
 				Class<?> interfaceClass = service.interfaceClass();
 				bf.destroyBean(bean);
 				try {
-					injectForEva(bean);
+					injectForEva(bean, context);
 				} catch (IllegalArgumentException | IllegalAccessException | ClassNotFoundException e) {
 					exc = e;
 					success = false;
@@ -197,7 +197,7 @@ public class AncientContext extends AbstractContext
 		}
 	}
 
-	private boolean needDelay(String beanName, Object bean) {
+	private boolean needDelay(String beanName, Object bean, ConfigurableApplicationContext context) {
 		Class<?> beanClass = bean.getClass();
 		Field[] fields = beanClass.getDeclaredFields();
 		if (Objects.isNull(fields) || fields.length == 0) {
@@ -209,7 +209,7 @@ public class AncientContext extends AbstractContext
 				continue;
 			} else {
 				Class<?> interfaceClass = f.getType();
-				Object fieldBean = CONTEXT.getBean(interfaceClass);
+				Object fieldBean = context.getBean(interfaceClass);
 				EvaService eva = fieldBean.getClass().getAnnotation(EvaService.class);
 				if (Objects.nonNull(eva)) {
 					DELAY_BEANS.put(beanName, bean);
@@ -220,7 +220,7 @@ public class AncientContext extends AbstractContext
 		return false;
 	}
 
-	private void injectForEva(Object rowBean)
+	private void injectForEva(Object rowBean, ConfigurableApplicationContext context)
 			throws IllegalArgumentException, IllegalAccessException, ClassNotFoundException {
 		Class<?> beanClass = rowBean.getClass();
 		Field[] fields = beanClass.getDeclaredFields();
@@ -233,7 +233,7 @@ public class AncientContext extends AbstractContext
 				continue;
 			} else {
 				Class<?> interfaceClass = f.getType();
-				Object fieldBean = CONTEXT.getBean(interfaceClass);
+				Object fieldBean = context.getBean(interfaceClass);
 				f.setAccessible(true);
 				f.set(rowBean, fieldBean);
 			}
@@ -268,9 +268,9 @@ public class AncientContext extends AbstractContext
 		@Override
 		public T getObject() throws Exception {
 			if (interfaceClass.isInterface()) {
-				return (T) new JdkProxy(target, interfaceClass, LOADER).getProxy();
+				return (T) new JdkProxy(target, interfaceClass, ProxyFactoryBean.class.getClassLoader()).getProxy();
 			} else {
-				return (T) new CglibProxy(target, interfaceClass, LOADER).getProxy();
+				return (T) new CglibProxy(target, interfaceClass, ProxyFactoryBean.class.getClassLoader()).getProxy();
 			}
 		}
 
@@ -323,10 +323,9 @@ public class AncientContext extends AbstractContext
 
 	@Override
 	public void setApplicationContext(ApplicationContext ctx) throws BeansException {
-		CONTEXT = (ConfigurableApplicationContext) ctx;
-		BEAN_FACTORY = (DefaultListableBeanFactory) CONTEXT.getBeanFactory();
+		ConfigurableApplicationContext context = (ConfigurableApplicationContext) ctx;
 		try {
-			init();
+			init(context);
 		} catch (EvaContextException e) {
 			LOG.warning(e.getMessage());
 		}

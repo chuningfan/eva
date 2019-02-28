@@ -3,6 +3,7 @@ package eva.core.base.config;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.PropertySource;
 
 @PropertySource("classpath:eva.properties")
@@ -29,6 +30,8 @@ public class ServerConfig {
 	@Value("$(eva.server.timeout)")
 	private int serverTimeoutSec = -1;
 	
+	private volatile ApplicationContext context;
+	
 	public String getServerId() {
 		return serverId;
 	}
@@ -36,14 +39,6 @@ public class ServerConfig {
 	public void setServerId(String serverId) {
 		this.serverId = serverId;
 	}
-
-//	public String getProviderName() {
-//		return providerName;
-//	}
-//
-//	public void setProviderName(String providerName) {
-//		this.providerName = providerName;
-//	}
 
 	public int getPort() {
 		return port;
@@ -117,4 +112,12 @@ public class ServerConfig {
 		this.serverTimeoutSec = serverTimeoutSec;
 	}
 
+	public ApplicationContext getContext() {
+		return context;
+	}
+
+	public void setContext(ApplicationContext context) {
+		this.context = context;
+	}
+	
 }

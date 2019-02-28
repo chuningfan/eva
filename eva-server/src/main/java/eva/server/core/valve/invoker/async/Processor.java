@@ -1,4 +1,4 @@
-package eva.server.core.async;
+package eva.server.core.valve.invoker.async;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -14,10 +14,10 @@ import org.springframework.context.ApplicationContext;
 
 import com.google.common.collect.Queues;
 
+import eva.core.base.config.ServerConfig;
 import eva.core.exception.EvaServerException;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
-import eva.server.core.context.AncientContext;
 import io.netty.channel.ChannelHandlerContext;
 
 public class Processor {
@@ -27,6 +27,8 @@ public class Processor {
 	private static final Logger LOG = Logger.getLogger("Server-Processor");
 
 	private static ThreadPoolExecutor TPT = null;
+	
+	private volatile ServerConfig config;
 
 	static {
 		int CPUCount = Runtime.getRuntime().availableProcessors();
@@ -67,12 +69,15 @@ public class Processor {
 
 	private ReentrantLock lock = new ReentrantLock();
 
-	public void init() {
+	public void init(ServerConfig config) {
+		if (Objects.isNull(this.config)) {
+			this.config = config;
+		}
 		if (!started) {
 			try {
 				if (lock.tryLock()) {
 					if (!started) {
-						TPT.execute(new Runner());
+						TPT.execute(new Runner(config.getContext()));
 					}
 				}
 			} finally {
@@ -83,8 +88,12 @@ public class Processor {
 
 	private static final class Runner implements Runnable {
 
-		private static final ApplicationContext CONTEXT = AncientContext.CONTEXT;
-
+		private ApplicationContext context;
+		
+		private Runner(ApplicationContext context) {
+			this.context = context;
+		}
+		
 		@Override
 		public void run() {
 			ChannelHandlerContext ctx = null;
@@ -95,7 +104,7 @@ public class Processor {
 					ctx = task.getCtx();
 					Packet packet = task.getPacket();
 					Class<?> interfaceClass = packet.getInterfaceClass();
-					Object proxy = CONTEXT.getBean(interfaceClass);
+					Object proxy = context.getBean(interfaceClass);
 					Response resp = new Response();
 					resp.setRequestId(packet.getRequestId());
 					if (Objects.nonNull(proxy)) {
@@ -123,10 +132,6 @@ public class Processor {
 				} catch (InterruptedException | NoSuchMethodException | SecurityException | IllegalAccessException
 						| IllegalArgumentException | InvocationTargetException e) {
 					LOG.warning(e.getMessage());
-				} finally {
-					if (Objects.nonNull(ctx)) {
-						ctx.close();
-					}
 				}
 			}
 		}

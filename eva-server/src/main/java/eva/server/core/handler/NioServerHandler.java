@@ -6,8 +6,8 @@ import eva.core.valve.EvaPipeline;
 import eva.core.valve.EvaPipeline.Direction;
 import eva.core.valve.Result;
 import eva.server.core.valve.Completed;
-import eva.server.core.valve.Invoker;
 import eva.server.core.valve.PacketChecker;
+import eva.server.core.valve.invoker.Invoker;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -24,13 +24,10 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 	private static final AttributeKey<Integer> READER_KEY = AttributeKey.valueOf("readFailedTimes");
 	private static final AttributeKey<Integer> ALL_KEY = AttributeKey.valueOf("allFailedTimes");
 	
-	static {
-		PIPELINE = new EvaPipeline<ServerParamWrapper, Result>();
-		PIPELINE.addLast(new PacketChecker()).addLast(new Invoker()).addLast(new Completed());
-	}
-
 	public NioServerHandler(ServerConfig config) {
 		this.config = config;
+		PIPELINE = new EvaPipeline<ServerParamWrapper, Result>();
+		PIPELINE.addLast(new PacketChecker()).addLast(new Invoker(config.getContext())).addLast(new Completed());
 	}
 
 	@Override

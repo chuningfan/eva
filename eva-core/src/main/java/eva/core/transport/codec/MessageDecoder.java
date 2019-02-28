@@ -35,7 +35,6 @@ public class MessageDecoder extends ByteToMessageDecoder {
         } else {
             byte[] messageBody = new byte[messageLength];
             in.readBytes(messageBody);
-
             try {
                 Object obj = util.decode(messageBody);
                 out.add(obj);

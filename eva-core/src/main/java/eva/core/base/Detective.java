@@ -17,7 +17,7 @@ public abstract class Detective implements Observer, Callable<Void> {
 
 	private static final Logger LOG = Logger.getLogger("Detective");
 	
-	private ReentrantLock lock = new ReentrantLock();
+	protected ReentrantLock lock = new ReentrantLock();
 	
 	private Condition condition = lock.newCondition();
 	

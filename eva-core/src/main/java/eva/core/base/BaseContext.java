@@ -2,12 +2,12 @@ package eva.core.base;
 
 import eva.core.exception.EvaContextException;
 
-public interface BaseContext {
+public interface BaseContext<A> {
 
 	<T> T getBean(Class<T> beanClass);
 
 	void removeBean(Class<?> beanClass);
 
-	void init() throws EvaContextException, InterruptedException;
+	void init(A arg) throws EvaContextException, InterruptedException;
 
 }
