@@ -1,6 +1,8 @@
 package eva.core.base;
 
 import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.util.Objects;
 import java.util.Observable;
 import java.util.Observer;
 import java.util.Timer;
@@ -11,7 +13,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
 import eva.common.global.StatusEvent;
-import eva.common.util.NetUtil;
 
 public abstract class Detective implements Observer, Callable<Void> {
 
@@ -54,20 +55,23 @@ public abstract class Detective implements Observer, Callable<Void> {
 			isConnected = true;
 			LOG.info("Detective connected!");
 			keeper.schedule(new TimerTask() {
+				private Socket connect = new Socket();
+				private volatile InetSocketAddress endpointSocketAddr;
 				@Override
 				public void run() {
-					InetSocketAddress address = targetAddress();
 					try {
 						lock.lock();
 						Thread.sleep(3 * 1000L);
-						boolean status = NetUtil.pingHost(address.getAddress().getHostAddress(), address.getPort());
-						String targetAddress = address.getAddress().getHostAddress()+ ":" + address.getPort();
-						if (status) {
-							LOG.info("Heart beat keeper: Reached to " + targetAddress);
-						} else {
-							LOG.warning("Heart beat keeper: Cannot reach to " + targetAddress);
+						if (Objects.isNull(endpointSocketAddr)) {
+							endpointSocketAddr = targetAddress();
 						}
-						if (!status) {
+						connect.connect(endpointSocketAddr,3000);
+						if (connect.isConnected()) {
+//							LOG.info("Heart beat keeper: Reached to " + targetAddress);
+						} else {
+							LOG.warning("Heart beat keeper: Cannot reach to " + endpointSocketAddr.getAddress() + ":" + endpointSocketAddr.getPort());
+						}
+						if (!connect.isConnected()) {
 							isConnected = false;
 							condition.signal();
 						}

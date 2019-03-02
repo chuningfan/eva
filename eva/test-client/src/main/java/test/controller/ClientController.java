@@ -1,19 +1,9 @@
 package test.controller;
 
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-
-import org.haiyiyang.server.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import com.haiyiyang.light.constant.LightConstants;
-import com.haiyiyang.light.rpc.LightRpcContext;
-import com.haiyiyang.light.service.proxy.LightServiceFactory;
 
 import test.service.ClientService;
 

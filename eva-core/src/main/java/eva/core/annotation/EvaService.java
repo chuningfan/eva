@@ -7,8 +7,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.stereotype.Service;
+
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
+@Service
 @Documented
 public @interface EvaService {
 	

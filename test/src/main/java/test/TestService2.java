@@ -1,11 +1,8 @@
 package test;
 
-import org.springframework.stereotype.Component;
-
 import eva.core.annotation.EvaEndpoint;
 import eva.core.annotation.EvaService;
 
-@Component
 @EvaService(maximumConcurrency=1)
 public class TestService2 implements TestInterface2 {
 
