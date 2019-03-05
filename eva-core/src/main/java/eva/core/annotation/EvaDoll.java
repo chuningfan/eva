@@ -10,18 +10,12 @@ import java.util.concurrent.TimeUnit;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-public @interface EvaEndpoint {
+public @interface EvaDoll {
 	
 	String fallback() default "";
 	
 	long timeout() default -1L;
 	
 	TimeUnit timeUnit() default TimeUnit.MILLISECONDS;
-	
-	int maximumConcurrency() default -1;
-	
-	int acquireTimeout() default 3000;
-	
-	TimeUnit acquireTimeUnit() default TimeUnit.MILLISECONDS;
 	
 }

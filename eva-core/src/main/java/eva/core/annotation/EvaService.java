@@ -7,22 +7,17 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.concurrent.TimeUnit;
 
-import org.springframework.stereotype.Service;
-
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Service
 @Documented
 public @interface EvaService {
 	
-	int maximumConcurrency() default -1;
+	long timeout() default -1L;
 	
-	Class<?> interfaceClass() default Object.class;
+	TimeUnit timeUnit() default TimeUnit.MILLISECONDS;
 	
-	int acquireTimeout() default 3000;
+	Class<?> interfaceClass();
 	
-	TimeUnit acquireTimeUnit() default TimeUnit.MILLISECONDS;
-	
-	String version() default "";
+	int accessLimit() default -1;
 	
 }

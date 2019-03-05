@@ -2,6 +2,8 @@ package eva.common.global;
 
 import java.util.Set;
 
+import com.google.common.collect.Sets;
+
 public class ProviderMetadata {
 
 	private String serverId;
@@ -10,7 +12,7 @@ public class ProviderMetadata {
 
 	private int port;
 	
-	private Set<String> services;
+	private Set<String> services = Sets.newHashSet();
 
 	public String getServerId() {
 		return serverId;

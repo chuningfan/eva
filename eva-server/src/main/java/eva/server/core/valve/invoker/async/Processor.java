@@ -1,6 +1,5 @@
 package eva.server.core.valve.invoker.async;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
@@ -10,14 +9,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
-import org.springframework.context.ApplicationContext;
-
 import com.google.common.collect.Queues;
 
+import eva.core.base.ResourceProvider;
 import eva.core.base.config.ServerConfig;
+import eva.core.dto.ReturnVoid;
 import eva.core.exception.EvaServerException;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
+import eva.core.valve.InvokerValve;
+import eva.core.valve.Result;
 import io.netty.channel.ChannelHandlerContext;
 
 public class Processor {
@@ -77,7 +78,7 @@ public class Processor {
 			try {
 				if (lock.tryLock()) {
 					if (!started) {
-						TPT.execute(new Runner(config.getContext()));
+						TPT.execute(new Runner(config.getProvider()));
 					}
 				}
 			} finally {
@@ -86,12 +87,13 @@ public class Processor {
 		}
 	}
 
-	private static final class Runner implements Runnable {
+	@SuppressWarnings("rawtypes")
+	private static final class Runner extends InvokerValve implements Runnable {
 
-		private ApplicationContext context;
+		private final ResourceProvider provider;
 		
-		private Runner(ApplicationContext context) {
-			this.context = context;
+		private Runner(ResourceProvider provider) {
+			this.provider = provider;
 		}
 		
 		@Override
@@ -104,7 +106,7 @@ public class Processor {
 					ctx = task.getCtx();
 					Packet packet = task.getPacket();
 					Class<?> interfaceClass = packet.getInterfaceClass();
-					Object proxy = context.getBean(interfaceClass);
+					Object proxy = provider.getSource(interfaceClass);
 					Response resp = new Response();
 					resp.setRequestId(packet.getRequestId());
 					if (Objects.nonNull(proxy)) {
@@ -117,8 +119,11 @@ public class Processor {
 						}
 						Class<?> returnType = method.getReturnType();
 						if (!"void".equalsIgnoreCase(returnType.getName())) {
-							Object res = method.invoke(proxy, packet.getArgs());
+							Object res = processInWrap(proxy, method, packet.getArgs());
 							resp.setResult(res);
+						} else {
+							processInWrap(proxy, method, packet.getArgs());
+							resp.setResult(ReturnVoid.getInstance());
 						}
 						resp.setStateCode(0);
 						resp.setMessage("ok");
@@ -129,13 +134,18 @@ public class Processor {
 					if (ctx.channel().isActive() && ctx.channel().isOpen()) {
 						ctx.writeAndFlush(resp);
 					}
-				} catch (InterruptedException | NoSuchMethodException | SecurityException | IllegalAccessException
-						| IllegalArgumentException | InvocationTargetException e) {
+				} catch (Exception e) {
 					LOG.warning(e.getMessage());
 				}
 			}
 		}
 
+		@Override
+		protected Result process0(Object data, Result result) throws Exception {
+			return null;
+		}
+
 	}
+
 
 }

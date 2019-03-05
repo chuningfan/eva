@@ -1,26 +1,43 @@
 package eva.server.core.valve.invoker;
 
 import java.lang.reflect.Method;
+import java.util.Collection;
 import java.util.Objects;
+import java.util.concurrent.Semaphore;
 
-import org.springframework.context.ApplicationContext;
-
+import eva.core.annotation.EvaService;
+import eva.core.base.ResourceProvider;
 import eva.core.dto.ReturnVoid;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
+import eva.core.valve.InvokerValve;
 import eva.core.valve.Result;
-import eva.core.valve.Valve;
 import eva.server.core.handler.ServerParamWrapper;
 import eva.server.core.valve.invoker.async.Queue;
 import eva.server.core.valve.invoker.async.Task;
 import io.netty.channel.ChannelHandlerContext;
 
-public class Invoker extends Valve<ServerParamWrapper, Result> {
+public class Invoker extends InvokerValve<ServerParamWrapper, Result> {
 
-	private ApplicationContext context;
+	private final ResourceProvider provider;
 
-	public Invoker(ApplicationContext context) {
-		this.context = context;
+	public Invoker(ResourceProvider provider) {
+		this.provider = provider;
+		Collection<Class<?>> evaInterfaces = provider.getEvaInterfaceClasses();
+		if (Objects.nonNull(evaInterfaces) && !evaInterfaces.isEmpty()) {
+			evaInterfaces.stream().forEach(itf -> {
+				Object instance = provider.getSource(itf);
+				if (Objects.nonNull(instance)) {
+					EvaService evaService = instance.getClass().getAnnotation(EvaService.class);
+					if (Objects.nonNull(evaService)) {
+						int limit = evaService.accessLimit();
+						if (limit > 0) {
+							SERVICE_SEM.put(itf, new Semaphore(limit));
+						}
+					}
+				}
+			});
+		}
 	}
 
 	@Override
@@ -31,7 +48,7 @@ public class Invoker extends Valve<ServerParamWrapper, Result> {
 		if (Objects.isNull(interfaceClass)) {
 			return result.setMessage("Pipline > Invoke: No interface class was found!");
 		}
-		Object proxy = context.getBean(interfaceClass);
+		Object proxy = provider.getSource(interfaceClass);
 		Response resp = new Response();
 		resp.setRequestId(packet.getRequestId());
 		if (!wrapper.getConfig().isAsyncProcessing()) {
@@ -45,10 +62,10 @@ public class Invoker extends Valve<ServerParamWrapper, Result> {
 				}
 				Class<?> returnType = method.getReturnType();
 				if (!"void".equalsIgnoreCase(returnType.getName())) {
-					Object res = method.invoke(proxy, packet.getArgs());
+					Object res = processInWrap(proxy, method, packet.getArgs());
 					resp.setResult(res);
 				} else {
-					method.invoke(proxy, packet.getArgs());
+					processInWrap(proxy, method, packet.getArgs());
 					resp.setResult(ReturnVoid.getInstance());
 				}
 				resp.setStateCode(0);
@@ -67,4 +84,5 @@ public class Invoker extends Valve<ServerParamWrapper, Result> {
 		return result.setSuccessful(true).setMessage("ok");
 	}
 
+	
 }

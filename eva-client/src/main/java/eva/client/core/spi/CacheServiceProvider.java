@@ -5,6 +5,8 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
+import eva.common.util.SPIServiceLoader;
+
 public class CacheServiceProvider {
 	
 	@SuppressWarnings("rawtypes")

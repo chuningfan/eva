@@ -11,6 +11,7 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.ZooKeeper;
 
 import com.google.common.collect.Maps;
@@ -33,15 +34,23 @@ public class Registry extends Observable implements Watcher {
 		return RegistryHolder.INSTANCE;
 	}
 	
-	public final void registerServerToRegistry(String registryAddress, ProviderMetadata providerMetadata) throws IOException {
-		ZooKeeper zk = new ZooKeeper(registryAddress, 5000, this);
+	public final void registerServerToRegistry(String registryAddress, ProviderMetadata providerMetadata) throws IOException, KeeperException, InterruptedException {
+		ZooKeeper zk = new ZooKeeper(registryAddress, 30 * 1000, this);
 		StatusEvent event = null;
+		String providerAddress = providerMetadata.getHost() + ":" + providerMetadata.getPort();
 		try {
 			String path = null;
-			syncData(zk);
 			for (String serviceName: providerMetadata.getServices()) {
 				path = ROOT + "/" + serviceName;
-				path = zk.create(path, registryAddress.getBytes(), null, CreateMode.EPHEMERAL);
+				if (Objects.isNull(zk.exists(ROOT, true))) {
+					zk.create(ROOT, "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+				}
+				if (Objects.isNull(zk.exists(ROOT + "/" + serviceName, true))) {
+					path = zk.create(ROOT + "/" + serviceName, "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);	
+				}
+				if (Objects.isNull(zk.exists(path + "/" + providerAddress, true))) {
+					zk.create(path + "/" + providerAddress, "".getBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+				}
 				Set<String> addressSet = REGISTRY_DATA.get(serviceName);
 				if (Objects.isNull(addressSet)) {
 					addressSet = Sets.newHashSet();
@@ -52,6 +61,8 @@ public class Registry extends Observable implements Watcher {
 			event = StatusEvent.getStartupEvent();
 		} catch (Exception e) {
 			event = StatusEvent.getFailedEvent(e);
+		} finally {
+			syncData(zk);
 		}
 		setChanged();
 		notifyObservers(event);
@@ -83,23 +94,26 @@ public class Registry extends Observable implements Watcher {
 			removeNode(event);
 			break;
 		case SyncConnected: 
-			addNode(event);
+//			addNode(event);
 			break;
 		default: break;
 		}
 	}
 	
-	private void addNode(WatchedEvent event) {
-		String path = event.getPath();
-		String[] nodePaths = path.split("/");
-		Set<String> set = REGISTRY_DATA.get(nodePaths[1]);
-		if (Objects.isNull(set)) {
-			set = Sets.newHashSet();
-			REGISTRY_DATA.put(nodePaths[1], set);
-			
-		}
-		set.add(nodePaths[2]);
-	}
+//	private void addNode(WatchedEvent event) {
+//		String path = event.getPath();
+//		if (Objects.isNull(path)) {
+//			path = ROOT;
+//		}
+//		String[] nodePaths = path.split("/");
+//		Set<String> set = REGISTRY_DATA.get(nodePaths[1]);
+//		if (Objects.isNull(set)) {
+//			set = Sets.newHashSet();
+//			REGISTRY_DATA.put(nodePaths[1], set);
+//			
+//		}
+//		set.add(nodePaths[2]);
+//	}
 	
 	
 	private void removeNode(WatchedEvent event) {

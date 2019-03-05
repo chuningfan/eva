@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import eva.core.base.config.ServerConfig;
-import eva.server.core.context.AncientContext;
+import eva.server.core.context.EvaContext;
 
 @SpringBootApplication
 public class Tester {
@@ -14,14 +14,24 @@ public class Tester {
 		SpringApplication.run(Tester.class, args);
 	}
 	
+//	@Bean
+//	public AncientContext ancientContext() throws Throwable {
+//		ServerConfig config = new ServerConfig();
+//		config.setBossSize(1);
+//		config.setWorkerSize(Runtime.getRuntime().availableProcessors());
+////		config.setAsyncProcessing(true);
+////		config.setRegistryAddress("127.0.0.1:2181");
+//		return new AncientContext(config);
+//	}
+	
 	@Bean
-	public AncientContext ancientContext() throws Throwable {
+	public EvaContext evaContext() {
 		ServerConfig config = new ServerConfig();
 		config.setBossSize(1);
-		config.setWorkerSize(Runtime.getRuntime().availableProcessors() * 2);
+		config.setWorkerSize(Runtime.getRuntime().availableProcessors());
 //		config.setAsyncProcessing(true);
 //		config.setRegistryAddress("127.0.0.1:2181");
-		return new AncientContext(config);
+		return new EvaContext(config);
 	}
 	
 }

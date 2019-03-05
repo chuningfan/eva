@@ -3,8 +3,9 @@ package eva.core.base.config;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.PropertySource;
+
+import eva.core.base.ResourceProvider;
 
 @PropertySource("classpath:eva.properties")
 public class ServerConfig {
@@ -29,8 +30,7 @@ public class ServerConfig {
 	private boolean inheritedInjection;
 	@Value("$(eva.server.timeout)")
 	private int serverTimeoutSec = -1;
-	
-	private volatile ApplicationContext context;
+	private volatile ResourceProvider provider;
 	
 	public String getServerId() {
 		return serverId;
@@ -112,12 +112,12 @@ public class ServerConfig {
 		this.serverTimeoutSec = serverTimeoutSec;
 	}
 
-	public ApplicationContext getContext() {
-		return context;
+	public ResourceProvider getProvider() {
+		return provider;
 	}
 
-	public void setContext(ApplicationContext context) {
-		this.context = context;
+	public void setProvider(ResourceProvider provider) {
+		this.provider = provider;
 	}
 	
 }

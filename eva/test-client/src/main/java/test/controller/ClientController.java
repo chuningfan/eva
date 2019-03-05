@@ -15,7 +15,8 @@ public class ClientController {
 	
 	@GetMapping("c")
 	public String test() {
-		return clientService.doTest();
+		String res = clientService.doTest();
+		return res;
 //		System.setProperty("useLocalProps", LightConstants.STR1);
 //		UserService userService = LightServiceFactory.getService(UserService.class);
 //		String helloResult = userService.hello(UUID.randomUUID().toString());

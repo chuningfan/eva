@@ -27,7 +27,7 @@ public class NioServerHandler extends SimpleChannelInboundHandler<Packet> {
 	public NioServerHandler(ServerConfig config) {
 		this.config = config;
 		PIPELINE = new EvaPipeline<ServerParamWrapper, Result>();
-		PIPELINE.addLast(new PacketChecker()).addLast(new Invoker(config.getContext())).addLast(new Completed());
+		PIPELINE.addLast(new PacketChecker()).addLast(new Invoker(config.getProvider())).addLast(new Completed());
 	}
 
 	@Override
