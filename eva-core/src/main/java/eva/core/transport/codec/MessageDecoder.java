@@ -2,7 +2,9 @@ package eva.core.transport.codec;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -10,7 +12,7 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 
 public class MessageDecoder extends ByteToMessageDecoder {
 
-	private static final Logger LOG = Logger.getLogger("MessageDecoder");
+	private static final Logger LOG = LoggerFactory.getLogger(MessageDecoder.class);
 	
 	final public static int MESSAGE_LENGTH = MessageCodecUtil.MESSAGE_LENGTH;
     private MessageCodecUtil util = null;
@@ -39,7 +41,7 @@ public class MessageDecoder extends ByteToMessageDecoder {
                 Object obj = util.decode(messageBody);
                 out.add(obj);
             } catch (IOException e) {
-            	LOG.warning(e.getMessage());
+            	LOG.error(e.getMessage());
             }
         }
     }

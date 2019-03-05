@@ -1,5 +1,8 @@
 package test;
 
+import java.io.IOException;
+
+import org.apache.zookeeper.KeeperException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -26,7 +29,7 @@ public class Tester {
 //	}
 	
 	@Bean
-	public EvaContext evaContext() throws EvaContextException, InterruptedException {
+	public EvaContext evaContext() throws EvaContextException, InterruptedException, IOException, KeeperException {
 		ServerConfig config = new ServerConfig();
 		config.setBossSize(1);
 		config.setWorkerSize(Runtime.getRuntime().availableProcessors());

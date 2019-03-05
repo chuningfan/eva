@@ -14,7 +14,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -44,7 +46,7 @@ import io.netty.util.AttributeKey;
 
 class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
-	private static final Logger LOG = Logger.getLogger("ClientProvider");
+	private static final Logger LOG = LoggerFactory.getLogger(ClientProvider.class);
 	
 	public static final ClientProvider get() {
 		return ClientProviderHolder.INSTANCE;
@@ -86,7 +88,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		try {
 			localHostIP = InetAddress.getLocalHost().getHostAddress();
 		} catch (UnknownHostException e) {
-			LOG.warning(e.getMessage());
+			LOG.error(e.getMessage());
 		}
 	}
 
@@ -139,7 +141,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 						break;
 					}
 				} catch (Exception e) {
-					LOG.warning(e.getMessage());
+					LOG.error(e.getMessage());
 				}
 			}
 		});
@@ -191,7 +193,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 			channel.attr(CHANNEL_ID).set(channelId);
 			wrap = new ClientWrapper(channel, channelId, address.getAddress().getHostAddress() + ":" + address.getPort());
 		} catch (InterruptedException e) {
-			LOG.warning(e.getMessage());
+			LOG.error(e.getMessage());
 		}
 		return wrap;
 	}

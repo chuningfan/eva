@@ -28,7 +28,7 @@ public abstract class BaseContext<P> extends Observable implements Observer, Reg
 		Registry.get().addObserver(this);
 	}
 	
-	protected abstract void init() throws EvaContextException, InterruptedException;
+	protected abstract void init() throws EvaContextException, InterruptedException, IOException, KeeperException;
 
 	// Receive event for [registry-data] change
 	@Override
@@ -67,6 +67,8 @@ public abstract class BaseContext<P> extends Observable implements Observer, Reg
 		if (parameter instanceof ServerConfig) {
 			ServerConfig config = (ServerConfig) parameter;
 			reg.registerServerToRegistry(config.getRegistryAddress(), metadata);
+			setChanged();
+			notifyObservers();
 		}
 	}
 	

@@ -10,13 +10,15 @@ import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eva.common.global.StatusEvent;
 
 public abstract class Detective implements Observer, Callable<Void> {
 
-	private static final Logger LOG = Logger.getLogger("Detective");
+	private static final Logger LOG = LoggerFactory.getLogger(Detective.class);
 	
 	protected ReentrantLock lock = new ReentrantLock();
 	
@@ -33,10 +35,10 @@ public abstract class Detective implements Observer, Callable<Void> {
 	@Override
 	public Void call() throws Exception {
 		 do {
+			 Thread.sleep(10 * 1000L);
 			try {
 				lock.lock();
 				connect();
-				Thread.sleep(30 * 1000L);
 				if (isConnected) {
 					condition.await();
 				}
@@ -69,7 +71,7 @@ public abstract class Detective implements Observer, Callable<Void> {
 						if (connect.isConnected()) {
 //							LOG.info("Heart beat keeper: Reached to " + targetAddress);
 						} else {
-							LOG.warning("Heart beat keeper: Cannot reach to " + endpointSocketAddr.getAddress() + ":" + endpointSocketAddr.getPort());
+							LOG.error("Heart beat keeper: Cannot reach to " + endpointSocketAddr.getAddress() + ":" + endpointSocketAddr.getPort());
 						}
 						if (!connect.isConnected()) {
 							isConnected = false;

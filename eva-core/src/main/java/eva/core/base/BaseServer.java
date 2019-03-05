@@ -11,7 +11,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eva.common.global.StatusEvent;
 import eva.core.base.config.ServerConfig;
@@ -21,7 +23,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 
 public abstract class BaseServer extends Observable implements Future<Boolean> {
 
-	private static final Logger LOG = Logger.getLogger("BaseServer");
+	private static final Logger LOG = LoggerFactory.getLogger(BaseServer.class);
 
 	private final ExecutorService daemon;
 
@@ -39,7 +41,7 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 		try {
 			host = InetAddress.getLocalHost().getHostAddress();
 		} catch (UnknownHostException e1) {
-			LOG.warning(e1.getMessage());
+			LOG.error(e1.getMessage());
 		}
 		status = Status.INITIALIZING;
 		daemon = Executors.newSingleThreadExecutor(new DefaultThreadFactory(getClass()) {

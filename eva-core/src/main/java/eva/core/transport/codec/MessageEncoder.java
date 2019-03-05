@@ -1,7 +1,9 @@
 package eva.core.transport.codec;
 
 import java.io.IOException;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
@@ -11,7 +13,7 @@ import io.netty.handler.codec.MessageToByteEncoder;
 @Sharable
 public class MessageEncoder extends MessageToByteEncoder<Object> {
 	
-	private static final Logger LOG = Logger.getLogger("MessageEncoder");
+	private static final Logger LOG = LoggerFactory.getLogger(MessageEncoder.class);
 	
 	private MessageCodecUtil util = null;
 
@@ -24,7 +26,7 @@ public class MessageEncoder extends MessageToByteEncoder<Object> {
 		try {
 			util.encode(out, msg);
 		} catch (IOException e) {
-			LOG.warning(e.getMessage());
+			LOG.error(e.getMessage());
 		}
 	}
 

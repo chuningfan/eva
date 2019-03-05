@@ -7,7 +7,9 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Queues;
 
@@ -25,7 +27,7 @@ public class Processor {
 
 	public static final int CORE_THREAD_SIZE = Runtime.getRuntime().availableProcessors();
 
-	private static final Logger LOG = Logger.getLogger("Server-Processor");
+	private static final Logger LOG = LoggerFactory.getLogger(Processor.class);
 
 	private static ThreadPoolExecutor TPT = null;
 	
@@ -44,14 +46,14 @@ public class Processor {
 							try {
 								flag = queue.offer(r, 500, TimeUnit.MILLISECONDS);
 							} catch (InterruptedException e) {
-								LOG.warning("Retrying offer task into queue failed. " + e.getMessage());
+								LOG.error("Retrying offer task into queue failed. " + e.getMessage());
 							}
 						}
 						if (!flag) {
 							try {
 								throw new EvaServerException("TPT rejected!");
 							} catch (EvaServerException e) {
-								LOG.warning(e.getMessage());
+								LOG.error(e.getMessage());
 							}
 						}
 					}
@@ -135,7 +137,7 @@ public class Processor {
 						ctx.writeAndFlush(resp);
 					}
 				} catch (Exception e) {
-					LOG.warning(e.getMessage());
+					LOG.error(e.getMessage());
 				}
 			}
 		}

@@ -2,13 +2,15 @@ package eva.core.listener;
 
 import java.util.Observable;
 import java.util.Observer;
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eva.common.global.StatusEvent;
 
 public interface StatusListener extends Observer {
 
-	static final Logger LOG = Logger.getLogger("StatusListener");
+	static final Logger LOG = LoggerFactory.getLogger(StatusListener.class);
 	
 	@Override
 	default void update(Observable o, Object arg) {

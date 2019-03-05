@@ -1,6 +1,8 @@
 package eva.server.core.server;
 
-import java.util.logging.Logger;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eva.common.global.ProviderMetadata;
 import eva.common.global.StatusEvent;
@@ -32,7 +34,7 @@ import io.netty.util.concurrent.GenericFutureListener;
 
 public class NioServer extends BaseServer {
 
-	private static final Logger LOG = Logger.getLogger("NioServer");
+	private static final Logger LOG = LoggerFactory.getLogger(NioServer.class);
 
 	private EventLoopGroup bossGroup;
 
@@ -86,7 +88,7 @@ public class NioServer extends BaseServer {
 				}
 			});
 		} catch (InterruptedException e) {
-			LOG.warning(e.getMessage());
+			LOG.error(e.getMessage());
 			notifyObservers(StatusEvent.getFailedEvent(e));
 		} finally {
 			stopGracefully();
