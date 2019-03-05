@@ -24,6 +24,8 @@ public abstract class BaseContext<P> extends Observable implements Observer, Reg
 	
 	protected BaseContext(P parameter) {
 		this.parameter = parameter;
+		// add current object as an observer to registry
+		Registry.get().addObserver(this);
 	}
 	
 	protected abstract void init() throws EvaContextException, InterruptedException;
