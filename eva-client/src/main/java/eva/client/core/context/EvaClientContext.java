@@ -1,11 +1,13 @@
 package eva.client.core.context;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,7 @@ public class EvaClientContext extends BaseContext<ClientConfig>  {
 
 	private final ExecutorService daemon;
 
-	public EvaClientContext(ClientConfig config) throws EvaContextException, InterruptedException {
+	public EvaClientContext(ClientConfig config) throws EvaContextException, InterruptedException, KeeperException, IOException {
 		super(config);
 		clientProvider = ClientProvider.get();
 		daemon = Executors.newSingleThreadExecutor(new ThreadFactory() {
@@ -44,7 +46,7 @@ public class EvaClientContext extends BaseContext<ClientConfig>  {
 	}
 	
 	@Override
-	protected void init() throws EvaContextException, InterruptedException {
+	protected void init() throws EvaContextException, InterruptedException, KeeperException, IOException {
 		RequestID.datacenterId = parameter.getClientId();
 		if (!StringUtil.isNullOrEmpty(parameter.getSingleHostAddress())
 				&& StringUtil.isNullOrEmpty(parameter.getRegistryAddress())) {
@@ -69,7 +71,7 @@ public class EvaClientContext extends BaseContext<ClientConfig>  {
 			// connection is disconnected.
 			Detective singleHostConnectionDetective = new Detective() {
 				@Override
-				public void connect() throws InterruptedException {
+				public void connect() throws InterruptedException, KeeperException, IOException {
 					try {
 						lock.lock();
 						StatusEvent event = StatusEvent.getStartupEvent();

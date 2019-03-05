@@ -70,6 +70,7 @@ public class Eva {
 						Channel channel = wrapper.getChannel();
 						if (channel.isActive() && channel.isOpen() && channel.isWritable()) {
 						} else {
+							channel.close();
 							wrapper = ClientProvider.get().createIfNecessary(NetUtil.getAddress(wrapper.getTargetAddress()));
 							if (Objects.isNull(wrapper)) {
 								wrapper = ClientProvider.get().getSource(interfaceClass);

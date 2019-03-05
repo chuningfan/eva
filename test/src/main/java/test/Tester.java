@@ -34,7 +34,7 @@ public class Tester {
 		config.setBossSize(1);
 		config.setWorkerSize(Runtime.getRuntime().availableProcessors());
 //		config.setAsyncProcessing(true);
-//		config.setRegistryAddress("127.0.0.1:2181");
+		config.setRegistryAddress("192.168.129.130:2181");
 		return new EvaContext(config);
 	}
 	

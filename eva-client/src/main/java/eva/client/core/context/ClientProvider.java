@@ -1,5 +1,6 @@
 package eva.client.core.context;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -7,6 +8,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Observable;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +17,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,10 +28,12 @@ import com.google.common.collect.Sets;
 import eva.balance.strategies.BalanceStrategyFactory;
 import eva.balance.strategies.BalanceStrategyFactory.Strategy;
 import eva.client.core.dto.ClientWrapper;
+import eva.common.global.NodeChangeEvent;
 import eva.common.registry.Registry;
 import eva.common.util.NetUtil;
 import eva.core.base.Pool;
 import eva.core.exception.EvaClientException;
+import eva.core.listener.NodeListener;
 import eva.core.transport.codec.kryo.KryoCodecUtil;
 import eva.core.transport.codec.kryo.KryoDecoder;
 import eva.core.transport.codec.kryo.KryoEncoder;
@@ -62,7 +68,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 	// key: address, value: channels
 	volatile Map<String, LinkedBlockingQueue<ClientWrapper>> POOL = Maps.newConcurrentMap();
 
-	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
+//	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
 	
 	private volatile Map<InetSocketAddress, Bootstrap> ADDRESS_BOOTSTRAP = Maps.newConcurrentMap();
 
@@ -92,10 +98,22 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		}
 	}
 
-	synchronized boolean prepare() throws InterruptedException{
+	synchronized boolean prepare() throws InterruptedException, KeeperException, IOException{
 		clear();
 		if (!isSingleHost) {
-			INTERFACE_HOSTS = Registry.REGISTRY_DATA;
+			Registry reg = Registry.get();
+			reg.addObserver(new NodeListener() {
+				@Override
+				public void onAdd(Observable o, NodeChangeEvent event) {
+				}
+				@Override
+				public void onDelete(Observable o, NodeChangeEvent event) {
+					
+				}
+			});
+			ZooKeeper zk = new ZooKeeper(serverAddress, 30 * 1000, reg);
+			reg.syncData(zk);
+			Map<String, Set<String>> INTERFACE_HOSTS = Registry.REGISTRY_DATA;
 			if (Objects.nonNull(INTERFACE_HOSTS) && !INTERFACE_HOSTS.isEmpty()) {
 				Set<Entry<String, Set<String>>> interfaceHostSet = INTERFACE_HOSTS.entrySet();
 				Set<String> addresses = Sets.newHashSet();
@@ -269,7 +287,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		if (isSingleHost) {
 			address = getChannelAddress(null);
 		} else {
-			Set<String> serviceAddresses = INTERFACE_HOSTS.get(serviceClass);
+			Set<String> serviceAddresses = Registry.REGISTRY_DATA.get(serviceClass.getName());
 			address = getChannelAddress(serviceAddresses);
 		}
 		LinkedBlockingQueue<ClientWrapper> llist = POOL.get(address);

@@ -1,5 +1,8 @@
 package test;
 
+import java.io.IOException;
+
+import org.apache.zookeeper.KeeperException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -16,13 +19,14 @@ public class App {
 	}
 	
 	@Bean
-	public EvaClientContext evaClientContext() throws EvaContextException, InterruptedException {
+	public EvaClientContext evaClientContext() throws EvaContextException, InterruptedException, KeeperException, IOException {
 		ClientConfig config = new ClientConfig();
 		config.setClientId(1L);
 		config.setGlobalTimoutMilliSec(3000);
 		config.setCoreSizePerHost(10);
 		config.setMaxSizePerHost(15);
-		config.setSingleHostAddress("127.0.0.1:8763");
+//		config.setSingleHostAddress("127.0.0.1:8763");
+		config.setRegistryAddress("192.168.129.130:2181");
 		return new EvaClientContext(config);
 	}
 	

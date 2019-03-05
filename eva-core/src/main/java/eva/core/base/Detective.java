@@ -1,5 +1,6 @@
 package eva.core.base;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Objects;
@@ -11,6 +12,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +93,7 @@ public abstract class Detective implements Observer, Callable<Void> {
 		}
 	}
 	
-	public abstract void connect() throws InterruptedException;
+	public abstract void connect() throws InterruptedException, KeeperException, IOException;
 	
 	public abstract InetSocketAddress targetAddress();
 	
