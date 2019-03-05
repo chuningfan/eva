@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
 import eva.core.base.config.ServerConfig;
+import eva.core.exception.EvaContextException;
 import eva.server.core.context.EvaContext;
 
 @SpringBootApplication
@@ -25,7 +26,7 @@ public class Tester {
 //	}
 	
 	@Bean
-	public EvaContext evaContext() {
+	public EvaContext evaContext() throws EvaContextException, InterruptedException {
 		ServerConfig config = new ServerConfig();
 		config.setBossSize(1);
 		config.setWorkerSize(Runtime.getRuntime().availableProcessors());
