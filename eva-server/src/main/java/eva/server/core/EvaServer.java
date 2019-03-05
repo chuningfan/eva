@@ -13,7 +13,7 @@ public class EvaServer {
 	
 	public static void main(String[] args) throws EvaContextException, InterruptedException, IOException, KeeperException {
 		ServerConfig config = new ServerConfig();
-		EvaContext ctx = new EvaContext(config);
+		new EvaContext(config);
 		Scanner scanner = new Scanner(System.in);
 		scanner.nextLine();
 	}
