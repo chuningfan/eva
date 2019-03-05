@@ -78,7 +78,6 @@ public class Eva {
 							channel = wrapper.getChannel();
 						}
 						channel.writeAndFlush(p);
-						System.out.println("Invoke ID=" + requestId + "<<<<<<<<<<<<<<<<<<<<<");
 						Response response = f.get(timeout, TimeUnit.MILLISECONDS);
 						return response.getResult();
 					} catch (Exception e) {
