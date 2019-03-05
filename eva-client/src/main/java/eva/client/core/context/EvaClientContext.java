@@ -2,7 +2,6 @@ package eva.client.core.context;
 
 import java.net.InetSocketAddress;
 import java.util.Objects;
-import java.util.Observable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -20,18 +19,17 @@ import eva.core.base.config.ClientConfig;
 import eva.core.exception.EvaContextException;
 import io.netty.util.internal.StringUtil;
 
-public class EvaClientContext extends Observable implements BaseContext<Void> {
+public class EvaClientContext extends BaseContext<ClientConfig>  {
+
 
 	private static final Logger LOG = LoggerFactory.getLogger(EvaClientContext.class);
-
-	private final ClientConfig config;
 
 	private final ClientProvider clientProvider;
 
 	private final ExecutorService daemon;
 
 	public EvaClientContext(ClientConfig config) throws EvaContextException, InterruptedException {
-		this.config = config;
+		super(config);
 		clientProvider = ClientProvider.get();
 		daemon = Executors.newSingleThreadExecutor(new ThreadFactory() {
 			@Override
@@ -42,41 +40,31 @@ public class EvaClientContext extends Observable implements BaseContext<Void> {
 				return th;
 			}
 		});
-		init(null);
+		init();
 	}
-
+	
 	@Override
-	public <T> T getBean(Class<T> beanClass) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void removeBean(Class<?> beanClass) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public void init(Void nothing) throws EvaContextException, InterruptedException {
-		RequestID.datacenterId = config.getClientId();
-		if (!StringUtil.isNullOrEmpty(config.getSingleHostAddress())
-				&& StringUtil.isNullOrEmpty(config.getRegistryAddress())) {
+	protected void init() throws EvaContextException, InterruptedException {
+		RequestID.datacenterId = parameter.getClientId();
+		if (!StringUtil.isNullOrEmpty(parameter.getSingleHostAddress())
+				&& StringUtil.isNullOrEmpty(parameter.getRegistryAddress())) {
 			clientProvider.setSingleHost(true);
-			clientProvider.setServerAddress(config.getSingleHostAddress());
-		} else if (StringUtil.isNullOrEmpty(config.getSingleHostAddress())
-				&& !StringUtil.isNullOrEmpty(config.getRegistryAddress())) {
+			clientProvider.setServerAddress(parameter.getSingleHostAddress());
+		} else if (StringUtil.isNullOrEmpty(parameter.getSingleHostAddress())
+				&& !StringUtil.isNullOrEmpty(parameter.getRegistryAddress())) {
 			clientProvider.setSingleHost(false);
-			clientProvider.setServerAddress(config.getRegistryAddress());
-			clientProvider.setBalanceStrategy(BalanceStrategyFactory.getStrategy(config));
+			clientProvider.setServerAddress(parameter.getRegistryAddress());
+			clientProvider.setBalanceStrategy(BalanceStrategyFactory.getStrategy(parameter));
 //			REGISTRY_DATA = Registry.get().getAllNodes();
 		} else {
 			throw new EvaContextException(
 					"In client configuration file, both single host and registry address are configured but expect one!");
 		}
-		clientProvider.setGlobalTimeoutMillSec(config.getGlobalTimoutMilliSec());
-		clientProvider.setCoreSizePerHost(config.getCoreSizePerHost());
-		clientProvider.setMaxSizePerHost(config.getMaxSizePerHost());
+		clientProvider.setGlobalTimeoutMillSec(parameter.getGlobalTimoutMilliSec());
+		clientProvider.setCoreSizePerHost(parameter.getCoreSizePerHost());
+		clientProvider.setMaxSizePerHost(parameter.getMaxSizePerHost());
 		// if the client is connected to a single host
-		if (Objects.nonNull(config.getSingleHostAddress()) && Objects.isNull(config.getRegistryAddress())) {
+		if (Objects.nonNull(parameter.getSingleHostAddress()) && Objects.isNull(parameter.getRegistryAddress())) {
 			// start a daemon for re-connect the host's netty server if the
 			// connection is disconnected.
 			Detective singleHostConnectionDetective = new Detective() {
@@ -110,14 +98,7 @@ public class EvaClientContext extends Observable implements BaseContext<Void> {
 		} else {
 			clientProvider.prepare();
 		}
-	}
-
-	public ClientProvider getClientProvider() {
-		return clientProvider;
-	}
-
-	ClientConfig getConfig() {
-		return config;
+		
 	}
 
 }

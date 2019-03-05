@@ -13,38 +13,38 @@ import eva.common.global.ProviderMetadata;
 import eva.common.global.StatusEvent;
 import eva.common.registry.Registry;
 import eva.common.util.SPIServiceLoader;
+import eva.core.base.BaseContext;
 import eva.core.base.ResourceProvider;
 import eva.core.base.config.ServerConfig;
+import eva.core.exception.EvaContextException;
 import eva.core.listener.StatusListener;
 import eva.server.core.server.NioServer;
 
-public class EvaContext {
+public class EvaContext extends BaseContext<ServerConfig> {
 
 	private static NioServer SERVER = null;
-
-	@SuppressWarnings("unused")
-	private final ServerConfig config;
 
 	private final ResourceProvider provider;
 
 	private ProviderMetadata providerMetadata;
 
-	public EvaContext(ServerConfig config) {
+	public EvaContext(ServerConfig config) throws EvaContextException, InterruptedException {
+		super(config);
 		// load SPI
 		provider = SPIServiceLoader.getServiceInstanceOrDefault(ResourceProvider.class, null);
 		config.setProvider(provider);
-		this.config = config;
-		init(config);
+		init();
 	}
 
-	private void init(ServerConfig config) {
+	@Override
+	protected void init() throws EvaContextException, InterruptedException {
 		if (Objects.isNull(SERVER)) {
 			synchronized (this) {
 				if (Objects.isNull(SERVER)) {
 					providerMetadata = new ProviderMetadata();
-					SERVER = new NioServer(config, providerMetadata);
-					boolean needToRegister = Objects.nonNull(config.getRegistryAddress())
-							&& !config.getRegistryAddress().trim().isEmpty();
+					SERVER = new NioServer(parameter, providerMetadata);
+					boolean needToRegister = Objects.nonNull(parameter.getRegistryAddress())
+							&& !parameter.getRegistryAddress().trim().isEmpty();
 					SERVER.addObserver(new StatusListener() {
 						@Override
 						public void onSuccess(Observable source, StatusEvent event) {
@@ -66,18 +66,18 @@ public class EvaContext {
 								}
 							});
 							try {
-								Registry.get().registerServerToRegistry(config.getRegistryAddress(), providerMetadata);
+								Registry.get().registerServerToRegistry(parameter.getRegistryAddress(), providerMetadata);
 							} catch (IOException | KeeperException | InterruptedException e1) {
 								LOG.warning("Cannot register Eva to registry, RPC is unavailable. " + e1.getMessage());
 							}
-							String registryAddress = config.getRegistryAddress();
+							String registryAddress = parameter.getRegistryAddress();
 							if (Objects.isNull(registryAddress) || "".equals(registryAddress.trim())) {
 								LOG.info("No registry address is provided, eva is cannot provide RPC service.");
 							} else {
 								Registry.get().addObserver(new StatusListener() {
 									@Override
 									public void onSuccess(Observable source, StatusEvent event) {
-										LOG.info("Provider [" + config.getServerId() + "] registered!");
+										LOG.info("Provider [" + parameter.getServerId() + "] registered!");
 									}
 
 									@Override

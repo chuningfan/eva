@@ -1,13 +1,17 @@
 package eva.core.base;
 
+import java.util.Observable;
+
 import eva.core.exception.EvaContextException;
 
-public interface BaseContext<A> {
+public abstract class BaseContext<P> extends Observable {
 
-	<T> T getBean(Class<T> beanClass);
-
-	void removeBean(Class<?> beanClass);
-
-	void init(A arg) throws EvaContextException, InterruptedException;
+	protected P parameter;
+	
+	protected BaseContext(P parameter) {
+		this.parameter = parameter;
+	}
+	
+	protected abstract void init() throws EvaContextException, InterruptedException;
 
 }
