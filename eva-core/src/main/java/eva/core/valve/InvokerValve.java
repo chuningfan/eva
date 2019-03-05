@@ -17,6 +17,7 @@ import com.google.common.collect.Maps;
 
 import eva.core.annotation.EvaDoll;
 import eva.core.annotation.EvaService;
+import eva.core.dto.NoSemaphore;
 import eva.core.dto.ReturnVoid;
 
 public abstract class InvokerValve<T, R extends Result> extends Valve<T, R> {
@@ -96,6 +97,8 @@ public abstract class InvokerValve<T, R extends Result> extends Valve<T, R> {
 				} finally {
 					sem.release();
 				}
+			} else {
+				result = NoSemaphore.getInstance();
 			}
 		} else {
 			try {
