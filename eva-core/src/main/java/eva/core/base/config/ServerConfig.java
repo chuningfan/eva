@@ -26,8 +26,6 @@ public class ServerConfig {
 	private int asyncQueueSize = 30;
 	@Value("${eva.registry.address}")
 	private String registryAddress;
-	@Value("${eva.server.bean.inheritedInjection}")
-	private boolean inheritedInjection;
 	@Value("$(eva.server.timeout)")
 	private int serverTimeoutSec = -1;
 	private volatile ResourceProvider provider;
@@ -94,14 +92,6 @@ public class ServerConfig {
 
 	public void setRegistryAddress(String registryAddress) {
 		this.registryAddress = registryAddress;
-	}
-
-	public boolean isInheritedInjection() {
-		return inheritedInjection;
-	}
-
-	public void setInheritedInjection(boolean inheritedInjection) {
-		this.inheritedInjection = inheritedInjection;
 	}
 
 	public int getServerTimeoutSec() {

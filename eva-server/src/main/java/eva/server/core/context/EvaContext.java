@@ -60,7 +60,6 @@ public class EvaContext {
 								public void onSuccess(Observable source, StatusEvent event) {
 									LOG.info("Eva has beean registered on the registry");
 								}
-
 								@Override
 								public void onFailure(Observable source, StatusEvent event) {
 									LOG.info("Cannot register Eva to registry, RPC is unavailable.");
