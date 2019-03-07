@@ -24,8 +24,8 @@ public class App {
 		config.setClientId(1L);
 		config.setGlobalTimoutMilliSec(30000);
 		config.setCoreSizePerHost(20);
-//		config.setSingleHostAddress("127.0.0.1:8763");
-		config.setRegistryAddress("192.168.129.130:2181");
+		config.setSingleHostAddress("127.0.0.1:8763");
+//		config.setRegistryAddress("192.168.129.130:2181");
 		return new EvaClientContext(config);
 	}
 	

@@ -16,6 +16,7 @@ public class ServerConfig {
 	private String registryAddress;
 	private int serverTimeoutSec = -1;
 	private volatile ResourceProvider provider;
+	private boolean jmxSupport;
 	
 	public String getServerId() {
 		return serverId;
@@ -95,6 +96,14 @@ public class ServerConfig {
 
 	public void setProvider(ResourceProvider provider) {
 		this.provider = provider;
+	}
+
+	public boolean isJmxSupport() {
+		return jmxSupport;
+	}
+
+	public void setJmxSupport(boolean jmxSupport) {
+		this.jmxSupport = jmxSupport;
 	}
 	
 }

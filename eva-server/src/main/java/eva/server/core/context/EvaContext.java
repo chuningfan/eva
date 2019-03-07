@@ -1,13 +1,21 @@
 package eva.server.core.context;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Observable;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+
 import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import eva.common.global.ProviderMetadata;
 import eva.common.global.StatusEvent;
@@ -17,10 +25,13 @@ import eva.core.base.ResourceProvider;
 import eva.core.base.config.ServerConfig;
 import eva.core.exception.EvaContextException;
 import eva.core.listener.StatusListener;
+import eva.server.core.jmx.EvaMXAgent;
 import eva.server.core.server.NioServer;
 
 public class EvaContext extends BaseContext<ServerConfig> {
 
+	private static final Logger LOG = LoggerFactory.getLogger(EvaContext.class);
+	
 	private static NioServer SERVER = null;
 
 	private final ResourceProvider provider;
@@ -47,11 +58,15 @@ public class EvaContext extends BaseContext<ServerConfig> {
 					SERVER.addObserver(new StatusListener() {
 						@Override
 						public void onSuccess(Observable source, StatusEvent event) {
-							try {
-								Thread.sleep(500L);
-								LOG.info("Registering local server to service registry");
-							} catch (InterruptedException e) {
-								LOG.info("Delay register eva server to registry failed, skip.");
+							LOG.info("Eva started!");
+							if (parameter.isJmxSupport()) {
+								try {
+									new EvaMXAgent(InetAddress.getLocalHost().getHostAddress(), parameter.getPort(), providerMetadata.getServices());
+								} catch (MalformedObjectNameException | InstanceAlreadyExistsException
+										| MBeanRegistrationException | NotCompliantMBeanException | IOException e) {
+									e.printStackTrace();
+									LOG.warn("When initializing JMX for eva, occurred an error. skip.");
+								}
 							}
 						}
 						@Override
@@ -63,7 +78,14 @@ public class EvaContext extends BaseContext<ServerConfig> {
 							LOG.error("Eva is shutted down, cannot provide RPC service any more.");
 						}
 					});
+					Collection<Class<?>> interfaces = provider.getEvaInterfaceClasses();
+					if (Objects.nonNull(interfaces) && !interfaces.isEmpty()) {
+						Set<String> interfaceClassNameSet = interfaces.stream().map(Class<?>::getName)
+								.collect(Collectors.toSet());
+						interfaceClassNameSet.stream().forEach(providerMetadata.getServices()::add);
+					}
 					if (needToRegister) {
+						LOG.info("Registering local server to service registry");
 						addObserver(new StatusListener() {
 							@Override
 							public void update(Observable arg0, Object arg1) {
@@ -77,13 +99,7 @@ public class EvaContext extends BaseContext<ServerConfig> {
 								LOG.error("Occurred an error, when registering server on REGISTRY!");
 							}
 						});
-						Collection<Class<?>> interfaces = provider.getEvaInterfaceClasses();
-						if (Objects.nonNull(interfaces) && !interfaces.isEmpty()) {
-							Set<String> interfaceClassNameSet = interfaces.stream().map(Class<?>::getName)
-									.collect(Collectors.toSet());
-							interfaceClassNameSet.stream().forEach(providerMetadata.getServices()::add);
-							doRegister(parameter, providerMetadata);
-						}
+						doRegister(parameter, providerMetadata);
 					}
 					SERVER.start();
 				}
