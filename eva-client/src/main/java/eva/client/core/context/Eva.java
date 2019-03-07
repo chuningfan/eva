@@ -20,7 +20,6 @@ import eva.client.core.dto.ClientWrapper;
 import eva.client.core.dto.SpecifiedConfig;
 import eva.client.core.spi.CacheServiceProvider;
 import eva.common.global.RequestID;
-import eva.common.util.NetUtil;
 import eva.core.annotation.Fallback;
 import eva.core.transport.Packet;
 import eva.core.transport.Response;
@@ -52,15 +51,15 @@ public class Eva {
 					ResponseFuture<Response> f = new ResponseFuture<Response>();
 					f.setRequestId(requestId);
 					TEMP_FUTURE.put(requestId, f);
-					System.out.println("put ID=" + requestId + ">>>>>>>>" + TEMP_FUTURE.stats());
 					Packet p = new Packet();
 					p.setArgs(methodArgs);
 					p.setArgTypes(argTypes);
 					p.setInterfaceClass(interfaceClass);
 					p.setMethodName(methodName);
 					p.setRequestId(requestId);
-					ClientWrapper wrapper = ClientProvider.get().getSource(interfaceClass);
-					long timeout = ClientProvider.get().getGlobalTimeoutMillSec();
+					ClientProvider clientProvider = ClientProvider.get();
+					ClientWrapper wrapper = clientProvider.getSource(interfaceClass);
+					long timeout = clientProvider.getGlobalTimeoutMillSec();
 					Object fallbackObj = null;
 					if (Objects.nonNull(config) && config.getTimeout() > 0) {
 						timeout = config.getTimeoutUnit().toMillis(config.getTimeout());
@@ -68,22 +67,12 @@ public class Eva {
 					}
 					try {
 						Channel channel = wrapper.getChannel();
-						if (channel.isActive() && channel.isOpen() && channel.isWritable()) {
-						} else {
-							channel.close();
-							wrapper = ClientProvider.get().createIfNecessary(NetUtil.getAddress(wrapper.getTargetAddress()));
-							if (Objects.isNull(wrapper)) {
-								wrapper = ClientProvider.get().getSource(interfaceClass);
-							}
-							channel = wrapper.getChannel();
-						}
 						channel.writeAndFlush(p);
 						Response response = f.get(timeout, TimeUnit.MILLISECONDS);
 						return response.getResult();
 					} catch (Exception e) {
-						ClientProvider.get().createIfNecessary(NetUtil.getAddress(wrapper.getTargetAddress()));
 						if (Objects.isNull(fallbackObj)) {
-							throw e;
+							throw e; // fail fast
 						}
 						if (Stream.of(fallbackObj.getClass().getInterfaces()).anyMatch(new Predicate<Class<?>>() {
 							@Override
@@ -102,7 +91,11 @@ public class Eva {
 							throw new Exception("Fallback instance is not an implementation of " + interfaceClass);
 						}
 					} finally {
-						ClientProvider.get().putback(wrapper);
+						if (wrapper.isNeedRecycle()) {
+							clientProvider.putback(wrapper);
+						} else {
+							wrapper.getChannel().flush().close();
+						}
 						TEMP_FUTURE.invalidate(requestId);
 					}
 				}

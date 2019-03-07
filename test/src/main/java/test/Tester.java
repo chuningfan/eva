@@ -31,8 +31,8 @@ public class Tester {
 	@Bean
 	public EvaContext evaContext() throws EvaContextException, InterruptedException, IOException, KeeperException {
 		ServerConfig config = new ServerConfig();
-		config.setBossSize(1);
-		config.setWorkerSize(Runtime.getRuntime().availableProcessors());
+		config.setBossSize(2);
+		config.setWorkerSize(Runtime.getRuntime().availableProcessors() * 2);
 //		config.setAsyncProcessing(true);
 		config.setRegistryAddress("192.168.129.130:2181");
 		return new EvaContext(config);

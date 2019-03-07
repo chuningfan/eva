@@ -14,6 +14,8 @@ public class ClientWrapper implements Serializable {
 	private Channel channel;
 	
 	private String targetAddress;
+	
+	private boolean needRecycle = true;
 
 	public ClientWrapper(Channel channel, UUID channelId, String targetAddress) {
 		this.channel = channel;
@@ -43,6 +45,14 @@ public class ClientWrapper implements Serializable {
 
 	public void setChannelId(UUID channelId) {
 		this.channelId = channelId;
+	}
+
+	public boolean isNeedRecycle() {
+		return needRecycle;
+	}
+
+	public void setNeedRecycle(boolean needRecycle) {
+		this.needRecycle = needRecycle;
 	}
 	
 }

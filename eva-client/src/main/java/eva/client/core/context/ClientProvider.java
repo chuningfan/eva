@@ -11,8 +11,6 @@ import java.util.Objects;
 import java.util.Observable;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -26,12 +24,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import eva.balance.strategies.BalanceStrategyFactory;
-import eva.balance.strategies.BalanceStrategyFactory.Strategy;
 import eva.client.core.dto.ClientWrapper;
 import eva.common.global.NodeChangeEvent;
 import eva.common.registry.Registry;
 import eva.common.util.NetUtil;
 import eva.core.base.Pool;
+import eva.core.base.config.ClientConfig;
 import eva.core.exception.EvaClientException;
 import eva.core.listener.NodeListener;
 import eva.core.transport.codec.kryo.KryoCodecUtil;
@@ -53,7 +51,7 @@ import io.netty.util.AttributeKey;
 class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ClientProvider.class);
-	
+
 	public static final ClientProvider get() {
 		return ClientProviderHolder.INSTANCE;
 	}
@@ -64,12 +62,12 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
 	static final AttributeKey<String> CHANNEL_ADDR_KEY = AttributeKey.valueOf("targetAddress");
 	static final AttributeKey<UUID> CHANNEL_ID = AttributeKey.valueOf("channelId");
-	
+
 	// key: address, value: channels
 	volatile Map<String, LinkedBlockingQueue<ClientWrapper>> POOL = Maps.newConcurrentMap();
 
-//	private volatile Map<String, Set<String>> INTERFACE_HOSTS;
-	
+	// private volatile Map<String, Set<String>> INTERFACE_HOSTS;
+
 	private volatile Map<InetSocketAddress, Bootstrap> ADDRESS_BOOTSTRAP = Maps.newConcurrentMap();
 
 	private ReentrantLock lock = new ReentrantLock();
@@ -80,15 +78,9 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 
 	private String serverAddress;
 
-	private Strategy balanceStrategy;
-
 	private String localHostIP;
 
-	private long globalTimeoutMillSec;
-
-	private int coreSizePerHost;
-
-	private int maxSizePerHost;
+	private ClientConfig config;
 
 	private ClientProvider() {
 		try {
@@ -98,7 +90,7 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		}
 	}
 
-	synchronized boolean prepare() throws InterruptedException, KeeperException, IOException{
+	synchronized boolean prepare() throws InterruptedException, KeeperException, IOException {
 		clear();
 		if (!isSingleHost) {
 			Registry reg = Registry.get();
@@ -106,16 +98,18 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 				@Override
 				public void onAdd(Observable o, NodeChangeEvent event) {
 				}
+
 				@Override
 				public void onDelete(Observable o, NodeChangeEvent event) {
-					
+
 				}
 			});
 			ZooKeeper zk = new ZooKeeper(serverAddress, 30 * 1000, reg);
 			reg.syncData(zk);
-			Map<String, Set<String>> INTERFACE_HOSTS = Registry.REGISTRY_DATA;
-			if (Objects.nonNull(INTERFACE_HOSTS) && !INTERFACE_HOSTS.isEmpty()) {
-				Set<Entry<String, Set<String>>> interfaceHostSet = INTERFACE_HOSTS.entrySet();
+			// Map<String, Set<String>> INTERFACE_HOSTS =
+			// Registry.REGISTRY_DATA;
+			if (Objects.nonNull(Registry.REGISTRY_DATA) && !Registry.REGISTRY_DATA.isEmpty()) {
+				Set<Entry<String, Set<String>>> interfaceHostSet = Registry.REGISTRY_DATA.entrySet();
 				Set<String> addresses = Sets.newHashSet();
 				for (Entry<String, Set<String>> en : interfaceHostSet) {
 					addresses.addAll(en.getValue());
@@ -129,12 +123,6 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 			createAddressPool(addr);
 		}
 		Thread.sleep(3 * 1000L);
-//		Set<String> addrSet = POOL.keySet();
-//		for (String addr : addrSet) {
-//			if (isSingleHost && POOL.get(addr).isEmpty()) {
-//				return false;
-//			}
-//		}
 		if (isSingleHost) {
 			return POOL.get(serverAddress).size() > 0;
 		}
@@ -144,26 +132,23 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 	private synchronized void createAddressPool(String addr) {
 		LinkedBlockingQueue<ClientWrapper> llist = POOL.get(addr);
 		if (Objects.isNull(llist)) {
-			llist = new LinkedBlockingQueue<>(coreSizePerHost);
+			llist = new LinkedBlockingQueue<>(config.getCoreSizePerHost());
 			POOL.put(addr, llist);
 		}
-		ExecutorService es = Executors.newSingleThreadExecutor();
-		es.submit(() -> {
-			ClientWrapper wrapper = null;
-			for (int i = 0; i < coreSizePerHost; i++) {
-				try {
-					wrapper = createIfNecessary(NetUtil.getAddress(addr));
-					if (Objects.nonNull(wrapper)) {
-						POOL.get(addr).offer(wrapper);
-					} else {
-						break;
-					}
-				} catch (Exception e) {
-					LOG.error(e.getMessage());
+		ClientWrapper wrapper = null;
+		for (int i = 0; i < config.getCoreSizePerHost(); i++) {
+			try {
+				wrapper = create(NetUtil.getAddress(addr));
+				if (Objects.nonNull(wrapper)) {
+					POOL.get(addr).offer(wrapper);
+				} else {
+					LOG.error("Cannot create eva client for target server: " + addr);
+					break;
 				}
+			} catch (Exception e) {
+				LOG.error(e.getMessage());
 			}
-		});
-		es.shutdown();
+		}
 	}
 
 	@Override
@@ -188,12 +173,13 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		if (Objects.isNull(existing)) {
 			final Bootstrap bootstrap = new Bootstrap();
 			EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
-			bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).option(ChannelOption.SO_KEEPALIVE, Boolean.TRUE)
-					.option(ChannelOption.TCP_NODELAY, Boolean.TRUE).handler(new ChannelInitializer<SocketChannel>() {
+			bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class)
+					.option(ChannelOption.SO_KEEPALIVE, Boolean.TRUE).option(ChannelOption.TCP_NODELAY, Boolean.TRUE)
+					.handler(new ChannelInitializer<SocketChannel>() {
 						@Override
 						protected void initChannel(SocketChannel ch) throws Exception {
 							ChannelPipeline pipeline = ch.pipeline();
-//							pipeline.addLast(new IdleStateHandler(0, 15, 0));
+							// pipeline.addLast(new IdleStateHandler(0, 15, 0));
 							pipeline.addLast(new KryoEncoder(kryoCodecUtil));
 							pipeline.addLast(new KryoDecoder(kryoCodecUtil));
 							pipeline.addLast(new EvaClientHandler());
@@ -204,14 +190,15 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		Bootstrap bootstrap = ADDRESS_BOOTSTRAP.get(address);
 		ChannelFuture channelFuture = bootstrap.connect(address.getAddress().getHostAddress(), address.getPort());
 		Channel channel = null;
-		try {
-			channel = channelFuture.sync().channel();
+		channel = channelFuture.sync().channel();
+		if (channel.isActive() && channel.isOpen() && channel.isWritable()) {
 			channel.attr(CHANNEL_ADDR_KEY).set(address.getAddress().getHostAddress() + ":" + address.getPort());
 			UUID channelId = UUID.randomUUID();
 			channel.attr(CHANNEL_ID).set(channelId);
-			wrap = new ClientWrapper(channel, channelId, address.getAddress().getHostAddress() + ":" + address.getPort());
-		} catch (InterruptedException e) {
-			LOG.error(e.getMessage());
+			wrap = new ClientWrapper(channel, channelId,
+					address.getAddress().getHostAddress() + ":" + address.getPort());
+		} else {
+			throw new Exception("Cannot create available channel for target server: " + address);
 		}
 		return wrap;
 	}
@@ -220,7 +207,8 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		if (isSingleHost) {
 			return serverAddress;
 		}
-		return BalanceStrategyFactory.getApplicableAddress(addresses, balanceStrategy, localHostIP);
+		return BalanceStrategyFactory.getApplicableAddress(addresses, BalanceStrategyFactory.getStrategy(config),
+				localHostIP);
 	}
 
 	public boolean isSingleHost() {
@@ -239,36 +227,12 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		this.serverAddress = serverAddress;
 	}
 
-	public Strategy getBalanceStrategy() {
-		return balanceStrategy;
-	}
-
-	public void setBalanceStrategy(Strategy balanceStrategy) {
-		this.balanceStrategy = balanceStrategy;
+	public void setConfig(ClientConfig config) {
+		this.config = config;
 	}
 
 	public long getGlobalTimeoutMillSec() {
-		return globalTimeoutMillSec;
-	}
-
-	public void setGlobalTimeoutMillSec(long globalTimeoutMillSec) {
-		this.globalTimeoutMillSec = globalTimeoutMillSec;
-	}
-
-	public int getCoreSizePerHost() {
-		return coreSizePerHost;
-	}
-
-	public void setCoreSizePerHost(int coreSizePerHost) {
-		this.coreSizePerHost = coreSizePerHost;
-	}
-
-	public int getMaxSizePerHost() {
-		return maxSizePerHost;
-	}
-
-	public void setMaxSizePerHost(int maxSizePerHost) {
-		this.maxSizePerHost = maxSizePerHost;
+		return config.getGlobalTimoutMilliSec();
 	}
 
 	@Override
@@ -295,17 +259,22 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 			createAddressPool(address);
 		}
 		ClientWrapper wrap = llist.poll(300, TimeUnit.MILLISECONDS);
-		int retryTime = 0;
-		while (Objects.isNull(wrap) && retryTime++ < 3) {
-			wrap = llist.poll(300, TimeUnit.MILLISECONDS);
-		}
-		if (Objects.isNull(wrap)) {
-			wrap = createIfNecessary(NetUtil.getAddress(address));
-			if (Objects.isNull(wrap)) {
-				throw new Exception("Cannot get connection resource for service" + serviceClass.getSimpleName() + ", you may increase the number of connection to resolve.");
+		if (Objects.isNull(wrap)
+				|| (!wrap.getChannel().isActive() || !wrap.getChannel().isOpen() || !wrap.getChannel().isWritable())) {
+			if (Objects.nonNull(wrap)) {
+				wrap.getChannel().flush().close();
+				wrap = create(NetUtil.getAddress(address));
+			} else {
+				wrap = tryGet(address);
 			}
 		}
 		return wrap;
+	}
+
+	private ClientWrapper tryGet(String address) throws Exception {
+		ClientWrapper wrapper = create(NetUtil.getAddress(address));
+		wrapper.setNeedRecycle(false);
+		return wrapper;
 	}
 
 	@Override
@@ -313,27 +282,31 @@ class ClientProvider implements Pool<ClientWrapper, InetSocketAddress> {
 		String addr = source.getTargetAddress();
 		LinkedBlockingQueue<ClientWrapper> channels = POOL.get(addr);
 		channels = POOL.get(addr);
-		boolean flag = channels.offer(source);
+		boolean flag = false;
+		if (source.getChannel().isActive() && source.getChannel().isOpen() && source.getChannel().isWritable()) {
+			flag = channels.offer(source);
+		} else {
+			source.getChannel().flush().close();
+			source = create(NetUtil.getAddress(source.getTargetAddress()));
+			flag = channels.offer(source);
+		}
 		if (!flag) {
-			if (channels.size() < maxSizePerHost) { 
-				source = create(NetUtil.getAddress(source.getTargetAddress()));
-				channels.offer(source);
-			} else {
-				source.getChannel().flush().close();
-			}
+			LOG.info("Cannot offer channel to POOL[" + source.getTargetAddress() + "], the POOL might be full.");
 		}
 	}
 
-	ClientWrapper createIfNecessary(InetSocketAddress address) throws Exception {
-		LinkedBlockingQueue<ClientWrapper> channels = POOL.get(NetUtil.getAddress(address));
-		if (channels.size() < maxSizePerHost) {
-			ClientWrapper wrapper = create(address);
-			if (Objects.nonNull(wrapper)) {
-				channels.offer(wrapper);
-				return wrapper;
-			}
-		}
-		return null;
-	}
-	
+	// ClientWrapper createIfNecessary(InetSocketAddress address) throws
+	// Exception {
+	// LinkedBlockingQueue<ClientWrapper> channels =
+	// POOL.get(NetUtil.getAddress(address));
+	// if (channels.size() < config.getMaxSizePerHost()) {
+	// ClientWrapper wrapper = create(address);
+	// if (Objects.nonNull(wrapper)) {
+	// channels.offer(wrapper);
+	// return wrapper;
+	// }
+	// }
+	// return null;
+	// }
+
 }
