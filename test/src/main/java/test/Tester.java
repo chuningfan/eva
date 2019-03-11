@@ -35,7 +35,9 @@ public class Tester {
 		config.setWorkerSize(Runtime.getRuntime().availableProcessors() * 2);
 //		config.setAsyncProcessing(true);
 		config.setJmxSupport(true);
-		config.setRegistryAddress("192.168.129.130:2181");
+//		config.setRegistryAddress("192.168.129.130:2181");
+		config.setRegistryAddress("127.0.0.1:2181");
+		config.setMonitorSupport(true);
 		return new EvaContext(config);
 	}
 	

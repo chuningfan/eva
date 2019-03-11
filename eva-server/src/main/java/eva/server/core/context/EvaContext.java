@@ -17,6 +17,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
+
 import eva.common.global.ProviderMetadata;
 import eva.common.global.StatusEvent;
 import eva.common.util.SPIServiceLoader;
@@ -26,6 +28,7 @@ import eva.core.base.config.ServerConfig;
 import eva.core.exception.EvaContextException;
 import eva.core.listener.StatusListener;
 import eva.server.core.jmx.EvaMXAgent;
+import eva.server.core.monitor.MonitorDataServer;
 import eva.server.core.server.NioServer;
 
 public class EvaContext extends BaseContext<ServerConfig> {
@@ -34,7 +37,9 @@ public class EvaContext extends BaseContext<ServerConfig> {
 	
 	private static NioServer SERVER = null;
 
-	private final ResourceProvider provider;
+	private static ResourceProvider provider;
+	
+	private static MonitorDataServer MONITOR_SERVER;
 
 	private ProviderMetadata providerMetadata;
 
@@ -102,9 +107,27 @@ public class EvaContext extends BaseContext<ServerConfig> {
 						doRegister(parameter, providerMetadata);
 					}
 					SERVER.start();
+					if (parameter.isMonitorSupport()) {
+						if (Objects.isNull(MONITOR_SERVER)) {
+							parameter.setDaemonName("Monitor-Data-Server-");
+							MONITOR_SERVER = new MonitorDataServer(parameter);
+							MONITOR_SERVER.start();
+						}
+					}
 				}
 			}
 		}
 	}
 
+	public static final Set<String> getLocalInterfaces() {
+		Set<String> set = Sets.newHashSet();
+		Collection<Class<?>> collection = provider.getEvaInterfaceClasses();
+		if (Objects.nonNull(collection) && !collection.isEmpty()) {
+			collection.forEach(i -> {
+				set.add(i.getName());
+			});
+		}
+		return set;
+	}
+	
 }

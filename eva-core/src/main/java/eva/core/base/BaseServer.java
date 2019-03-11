@@ -48,7 +48,8 @@ public abstract class BaseServer extends Observable implements Future<Boolean> {
 			@Override
 			public Thread newThread(Runnable r) {
 				final Thread thread = Executors.defaultThreadFactory().newThread(r);
-				thread.setName("Server-Daemon-" + config.getServerId());
+				String daemonName = (config.getDaemonName() == null || config.getDaemonName().trim().length() < 1) ? "Server-Daemon-" : config.getDaemonName();
+				thread.setName(daemonName + config.getServerId());
 				thread.setDaemon(true);
 				final Thread.UncaughtExceptionHandler uncaughtExceptionHandler = new UncaughtExceptionHandler() {
 					@Override

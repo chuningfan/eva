@@ -17,6 +17,9 @@ public class ServerConfig {
 	private int serverTimeoutSec = -1;
 	private volatile ResourceProvider provider;
 	private boolean jmxSupport;
+	private boolean monitorSupport;
+	private int monitorSupportPort = 8220;
+	private String daemonName;
 	
 	public String getServerId() {
 		return serverId;
@@ -104,6 +107,30 @@ public class ServerConfig {
 
 	public void setJmxSupport(boolean jmxSupport) {
 		this.jmxSupport = jmxSupport;
+	}
+
+	public boolean isMonitorSupport() {
+		return monitorSupport;
+	}
+
+	public void setMonitorSupport(boolean monitorSupport) {
+		this.monitorSupport = monitorSupport;
+	}
+
+	public int getMonitorSupportPort() {
+		return monitorSupportPort;
+	}
+
+	public void setMonitorSupportPort(int monitorSupportPort) {
+		this.monitorSupportPort = monitorSupportPort;
+	}
+
+	public String getDaemonName() {
+		return daemonName;
+	}
+
+	public void setDaemonName(String daemonName) {
+		this.daemonName = daemonName;
 	}
 	
 }
