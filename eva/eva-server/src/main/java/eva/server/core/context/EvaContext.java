@@ -85,7 +85,7 @@ public class EvaContext extends BaseContext<ServerConfig> {
 					});
 					Collection<Class<?>> interfaces = provider.getEvaInterfaceClasses();
 					if (Objects.nonNull(interfaces) && !interfaces.isEmpty()) {
-						Set<String> interfaceClassNameSet = interfaces.stream().map(Class<?>::getName)
+						Set<String> interfaceClassNameSet = interfaces.stream().map(Class::getName)
 								.collect(Collectors.toSet());
 						interfaceClassNameSet.stream().forEach(providerMetadata.getServices()::add);
 					}

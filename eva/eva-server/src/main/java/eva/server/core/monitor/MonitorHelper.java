@@ -22,6 +22,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.alibaba.fastjson.JSON;
+import com.esotericsoftware.minlog.Log;
 import com.google.common.collect.Sets;
 
 import eva.common.monitor.EvaDataForMonitor;
@@ -72,7 +73,7 @@ public class MonitorHelper {
 						if ("service".equalsIgnoreCase(msg)) {
 							Map<String, Set<String>> registryData = Registry.REGISTRY_DATA;
 							Set<EvaService> set = Sets.newHashSet();
-							if (Objects.nonNull(registryData)) {
+							if (Objects.nonNull(registryData) && !registryData.isEmpty()) {
 								for (String serviceName: registryData.keySet()) {
 									EvaService es = new EvaService();
 									es.setServiceName(serviceName);
@@ -101,7 +102,7 @@ public class MonitorHelper {
 						writer.println(data);
 	                }
 				} catch (Exception e) {
-					
+					Log.error("Monitor Server:" + e.getMessage());
 				}
 			}
 

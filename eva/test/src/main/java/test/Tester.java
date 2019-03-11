@@ -36,7 +36,7 @@ public class Tester {
 //		config.setAsyncProcessing(true);
 		config.setJmxSupport(true);
 //		config.setRegistryAddress("192.168.129.130:2181");
-		config.setRegistryAddress("127.0.0.1:2181");
+//		config.setRegistryAddress("127.0.0.1:2181");
 		config.setMonitorSupport(true);
 		return new EvaContext(config);
 	}
